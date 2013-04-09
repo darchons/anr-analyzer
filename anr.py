@@ -370,11 +370,13 @@ if __name__ == '__main__':
     clusters.sort(key=lambda c: len(c))
 
     for i, clus in enumerate(clusters):
-        print 'Cluster %d: %d member(s), sample stack:' % (i + 1, len(clus))
-        mainThread = clus[0].mainThread
-        if mainThread:
-            for s in mainThread.stack:
-                print ' ' + str(s)
+        print 'Cluster %d: %d member(s), stack:' % (i + 1, len(clus))
+        for j, c in enumerate(clus):
+            print ' Member %d:' % (j + 1)
+            mainThread = c.mainThread
+            if mainThread:
+                for s in mainThread.stack:
+                    print '  ' + str(s)
         print
 
     print 'Took %f seconds\n' % (time.time() - starttime)
