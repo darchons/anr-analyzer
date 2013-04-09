@@ -91,12 +91,13 @@ class ANRReport:
             if DEBUG:
                 print ' starting at %d and %d with %f' % (
                     aIndex, bIndex, self.stack[aIndex] == other.stack[bIndex])
-            return (1.0 - (
-                    self._neMatch(self.stack[aStart: aIndex + 1],
+            return 1.0 - (
+                    0.7 * self._neMatch(self.stack[aStart: aIndex + 1],
                         other.stack[bStart: bIndex + 1]) +
-                    self._neMatch(self.stack[aIndex:], other.stack[bIndex:])) /
-                    (max(len(self.stack) - aStart,
-                        len(other.stack) - bStart) + 1))
+                    self._neMatch(self.stack[aIndex:],
+                        other.stack[bIndex:])) / (
+                    max(len(self.stack) - aStart, len(other.stack) - bStart) -
+                        0.3 * max(aIndex - aStart + 1, bIndex - bStart + 1))
 
         def __ne__(self, other):
             return 1.0 - (self == other)
