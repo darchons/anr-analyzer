@@ -335,16 +335,23 @@ class ANRReport:
     def __eq__(self, other):
         return self.mainThread == other.mainThread
 
-def cluster(anrs, threshold):
+def cluster(anrs, threshold=None, comp=None):
     if len(anrs) == 1:
         return [anrs]
-    left = cluster(anrs[:len(anrs) / 2], threshold)
-    right = cluster(anrs[len(anrs) / 2:], threshold)
+
+    if not comp:
+        def defComp(left, right):
+            return (left[0] == right[0]) >= threshold
+        comp = defComp
+
+    left = cluster(anrs[:len(anrs) / 2],
+        threshold=threshold, comp=comp)
+    right = cluster(anrs[len(anrs) / 2:],
+        threshold=threshold, comp=comp)
     ret = []
     for r in right:
         # extend left cluster if right cluster matches left cluster
-        i = next((i for i in range(len(left))
-            if (left[i][0] == r[0]) >= threshold), -1)
+        i = next((i for i in range(len(left)) if comp(left[i], r)), -1)
         if i == -1:
             ret.append(r)
             continue
@@ -372,7 +379,7 @@ if __name__ == '__main__':
     with open(sys.argv[2], 'r') as f:
         anrs = [ANRReport(l) for l in f]
 
-    clusters = cluster(anrs, threshold)
+    clusters = cluster(anrs, threshold=threshold)
     clusters.sort(key=lambda c: len(c))
 
     for i, clus in enumerate(clusters):
