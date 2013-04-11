@@ -9,6 +9,20 @@ ANR_JAVA_METHOD = re.compile(
 ANR_NATIVE_FUNCTION = re.compile(
     r'(\d+).*? ([0-9a-fA-F]+)(?:.*? (\S*[/\.]\S+))?(?:.*? \((.+)\))?')
 
+THREAD_BLACKLIST = [
+    re.compile(r'^GeckoANRReporter$'),
+    re.compile(r'android\.'),
+    re.compile(r'apache\.'),
+    re.compile(r'^AsyncTask'),
+    re.compile(r'^Binder'),
+    re.compile(r'^Thread-'),
+    re.compile(r'^pool-'),
+    re.compile(r'Daemon$'),
+    re.compile(r'^Compiler$'),
+    re.compile(r'^JDWP$'),
+    re.compile(r'^Signal Catcher$'),
+    re.compile(r'^GC$')]
+
 class ANRReport:
 
     class Thread:
@@ -301,6 +315,17 @@ class ANRReport:
     @property
     def mainThread(self):
         return self.getThread('main')
+
+    def getBackgroundThreads(self):
+        main = self.mainThread
+        for t in self.threads:
+            if t is main:
+                continue
+            if not t.name or not t.stack:
+                continue
+            if any(bl.search(t.name) for bl in THREAD_BLACKLIST):
+                continue
+            yield t
 
     @property
     def detail(self):
