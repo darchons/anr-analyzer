@@ -79,25 +79,9 @@ class ANRReport:
                     if not self.stack[i].isNative)
                 bStart = next(i for i in range(len(other.stack))
                     if not other.stack[i].isNative)
-            # find an initial point of comparison
-            aIndex = min(range(aStart, len(self.stack)), key=lambda i:
-                    i + (len(self.stack) if self.stack[i].isNative else 0)) - 1
-            bIndex = None
-            while not bIndex or (aIndex < len(self.stack) - 1 and
-                    (self.stack[aIndex] == other.stack[bIndex]) < 0.7):
-                aIndex += 1
-                bIndex = max(range(bStart, len(other.stack)),
-                        key=lambda i: other.stack[i] == self.stack[aIndex])
-            if DEBUG:
-                print ' starting at %d and %d with %f' % (
-                    aIndex, bIndex, self.stack[aIndex] == other.stack[bIndex])
             return 1.0 - (
-                    0.7 * self._neMatch(self.stack[aStart: aIndex + 1],
-                        other.stack[bStart: bIndex + 1]) +
-                    self._neMatch(self.stack[aIndex:],
-                        other.stack[bIndex:])) / (
-                    max(len(self.stack) - aStart, len(other.stack) - bStart) -
-                        0.3 * max(aIndex - aStart + 1, bIndex - bStart + 1))
+                self._neMatch(self.stack[aStart:], other.stack[bStart:])) / (
+                max(len(self.stack) - aStart, len(other.stack) - bStart))
 
         def __ne__(self, other):
             return 1.0 - (self == other)
@@ -223,10 +207,7 @@ class ANRReport:
             ret += ((0.3 + (0.1 if aClass[-1] == bClass[-1] else 0.0))
                     if aClass[0] == bClass[0] else 0.0)
             # compare package
-            ret += min(0.2, 0.2 * next(i
-                    for i in range(min(len(aTokens), len(bTokens)))
-                    if aTokens[i] != bTokens[i]) /
-                    (max(len(aTokens), len(bTokens)) - 2))
+            ret += 0.2 if aTokens[:-2] == bTokens[:-2] else 0.0
             return ret
 
         def __eq__(self, other):
