@@ -86,9 +86,10 @@ class ANRReport:
                 return other == self
             if len(self.stack) == len(other.stack) and self.name < other.name:
                 return other == self
-            aStart = bStart = 0
-            if not self.stack[0].isNative or not other.stack[0].isNative:
-                # don't compare native stack if either doesn't have it
+            # aStart = bStart = 0
+            # if not self.stack[0].isNative or not other.stack[0].isNative:
+            if True:
+                # don't compare native stack
                 aStart = next(i for i in range(len(self.stack))
                     if not self.stack[i].isNative)
                 bStart = next(i for i in range(len(other.stack))
@@ -133,16 +134,18 @@ class ANRReport:
 
         def __str__(self):
             if self.isNative:
-                return self.nativeFunction if self.nativeFunction else '(native)'
-            return self.javaMethod if self.javaMethod else '(java)'
+                return 'c:%s:%s' % (
+                    self.nativeLib if self.nativeLib else '',
+                    self.nativeFunction if self.nativeFunction else '')
+            return 'j:%s:%s' % (
+                self.javaMethod if self.javaMethod else '',
+                self.javaLine if self.javaLine else '')
 
         def _eqNative(self, other):
             aLib = self.nativeLib
             bLib = other.nativeLib
             if not aLib or not bLib:
-                # give function name a chance
-                return 0.1 * self._eqNativeFunction(
-                    self.nativeFunction, other.nativeFunction)
+                return 1.0 if not aLib and not bLib else 0.0
             if (aLib.find('/') < 0) != (bLib.find('/') < 0):
                 # strip directory
                 aLib = aLib[aLib.rfind('/') + 1:]
@@ -154,7 +157,7 @@ class ANRReport:
             aLib = aLib[aLib.rfind('/') + 1:]
             bLib = bLib[bLib.rfind('/') + 1:]
             if aLib and bLib and aLib == bLib:
-                return 0.9 * self._eqNativeFunction(
+                return self._eqNativeFunction(
                     self.nativeFunction, other.nativeFunction)
             return 0.0
 
@@ -180,12 +183,12 @@ class ANRReport:
             a = a.partition('+')[0]
             b = b.partition('+')[0]
             if a and b and a == b:
-                return 0.9
+                return 1.0
             # compare without arguments
             a = a.partition('(')[0]
             b = b.partition('(')[0]
             if a and b and a == b:
-                return 0.7
+                return 0.8
             # compare without namespaces
             a = a[a.rfind(':') + 1:]
             b = b[b.rfind(':') + 1:]
@@ -194,20 +197,19 @@ class ANRReport:
             return 0.0
 
         def _eqJava(self, other):
-            aLine = self.javaLine
-            bLine = other.javaLine
-            if aLine and bLine:
-                aLine = int(self.javaLine.strip('~'), 10)
-                bLine = int(other.javaLine.strip('~'), 10)
-                if 10 * abs(aLine - bLine) / max(aLine, bLine) > 0:
-                    return 0.8 * self._eqJavaMethod(
-                            self.javaMethod, other.javaMethod)
+            # aLine = self.javaLine
+            # bLine = other.javaLine
+            # if aLine and bLine:
+            #     aLine = int(self.javaLine.strip('~'), 10)
+            #     bLine = int(other.javaLine.strip('~'), 10)
+            #     if 10 * abs(aLine - bLine) / max(aLine, bLine) > 0:
+            #         return 0.8 * self._eqJavaMethod(
+            #                 self.javaMethod, other.javaMethod)
             return self._eqJavaMethod(self.javaMethod, other.javaMethod)
 
         def _eqJavaMethod(self, a, b):
-            # we can still compare files
             if not a or not b:
-                return 0.1
+                return 0.0
             # a and b are in the form pkg.cls$child.method
             if a and b and a == b:
                 return 1.0
