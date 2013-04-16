@@ -31,6 +31,32 @@
         </div>
         <div id="throbber-bg"></div>
     </div>
+    <div id="reports-popup">
+        <div id="reports-close"><div>&times;</div></div>
+        <ul id="reports">
+            <li id="report-template" class="report">
+                <div>
+                    <span class="report-count"></span>,
+                    build <span class="report-build"></span>,
+                    submitted <span class="report-submitted"></span>
+                </div>
+                <ul>
+                    <li>
+                        <div class="report-name">Info</div>
+                        <ul class="report-info"></ul>
+                    </li>
+                    <li>
+                        <div class="report-name">Main thread</div>
+                        <ul class="report-thread report-main"></ul>
+                    </li>
+                    <li class="report-threads">
+                        <div class="report-name"></div>
+                        <ul class="report-thread"></ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
     <div class="graph"></div>
 </div>
 <div id='footer'></div>

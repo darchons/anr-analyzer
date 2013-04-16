@@ -5,6 +5,18 @@ function ANRReport(jsonObj) {
     return jsonObj;
 }
 
+ANRReport.getFrame = function (stack) {
+    var parts = stack.split(':');
+    if (!stack.startsWith('j')) {
+        return parts.slice(2).join(':') + (parts[2] ? ' ' : '') +
+            '(' + parts[1] + ')';
+    }
+    if (!parts[2]) {
+        return parts[1];
+    }
+    return parts[1] + ' (line ' + parts[2] + ')';
+}
+
 ANRReport.arraymerge = function (first, second) {
     // from jQuery.merge
     var l = second.length,

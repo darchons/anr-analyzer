@@ -84,20 +84,27 @@ function generateChart(clusters, options) {
         },
         colors: colors
     });
+
+    function getNonEmptySeries(item) {
+        var series = item.seriesIndex;
+        if (item.datapoint[1] == item.datapoint[2]) {
+            for (; series > 0; --series) {
+                if (data[series][item.dataIndex][1] != 0) {
+                    break;
+                }
+            }
+        }
+        return series;
+    }
+
     var prevItem = null;
+    graph.unbind("plothover");
     graph.bind("plothover", function (event, pos, item) {
         if (item) {
             if (item.datapoint.toString() !== prevItem) {
                 prevItem = item.datapoint.toString();
-                var series = item.seriesIndex;
-                if (item.datapoint[1] == item.datapoint[2]) {
-                    for (; series > 0; --series) {
-                        if (plotdata[series][item.dataIndex][1] != 0) {
-                            break;
-                        }
-                    }
-                }
-                var cluster = clusters[series],
+                var series = getNonEmptySeries(item),
+                    cluster = clusters[series],
                     tooltip = $('#tooltip'),
                     index = data[series][item.dataIndex][0],
                     count = data[series][item.dataIndex][1],
@@ -113,10 +120,6 @@ function generateChart(clusters, options) {
                     return cluster[0].main.filter(function (val) {
                         return !val.startsWith('c');
                     }).splice(0, STACK_LIMIT).map(function (val) {
-                        if (val.startsWith('c')) {
-                            var parts = val.split(':');
-                            return parts.slice(2).join(':') + ' (' + parts[1] + ')';
-                        }
                         return val.split(':')[1];
                     }).join('\n');
                 })());
@@ -145,8 +148,86 @@ function generateChart(clusters, options) {
             });
         }
     });
+    graph.unbind("mouseout");
     graph.bind("mouseout", function (event) {
-        $('#tooltip').animate({opacity: 0}, 100);
+        graph.trigger('plothover', [event, null, null]);
+    });
+
+    $('#reports-popup').fadeOut(200);
+    $('#reports-close div').click(function () {
+        $('#reports-popup').fadeOut(200);
+    }).css('background-color', colors[colors.length - 1]);
+    graph.unbind("plotclick");
+    graph.bind("plotclick", function (event, pos, item) {
+        if (!item) {
+            return;
+        }
+        var series = getNonEmptySeries(item),
+            cluster = clusters[series],
+            reports = $('#reports'),
+            template = $('#report-template');
+        cluster = cluster.sort(function (left, right) {
+            return left['info'][indexName] - right['info'][indexName];
+        });
+        reports.children().not(template).remove();
+        cluster.forEach(function (anr) {
+            var report = template.clone().removeAttr('id');
+            report.find('.report-count').text(
+                anr['count'] + ' report' + (anr['count'] > 1 ? 's' : ''));
+            report.find('.report-build').text(
+                anr['info']['appBuildID']);
+            report.find('.report-submitted').text(
+                anr['info']['submitted']);
+            var infolist = report.find('.report-info');
+            anr['info']['file'] = anr['file'] || anr['info']['file'];
+            anr['info']['indices'] = anr['indices'] || anr['info']['indices'];
+            for (var infokey in anr['info']) {
+                infolist.append($('<li/>').text(
+                    infokey + ': ' + anr['info'][infokey]));
+            }
+            var main = report.find('.report-main');
+            anr['main'].forEach(function (stack) {
+                main.append($('<li/>').text(
+                    ANRReport.getFrame(stack)
+                ).css('color', stack.startsWith('j') ? '': '#888'));
+            })
+            var threadTemplate = report.find('.report-threads');
+            anr['threads'].forEach(function (thread) {
+                var threadItem = threadTemplate.clone(),
+                    threadStack = threadItem.children('.report-thread');
+                thread['stack'].forEach(function (stack) {
+                    threadStack.append($('<li/>').text(
+                        ANRReport.getFrame(stack)
+                    ).css('color', stack.startsWith('j') ? '': '#888'));
+                })
+                threadItem.children('.report-name').hover(function () {
+                    $(this).css('background-color', colors[1]);
+                }, function () {
+                    $(this).css('background-color', colors[0]);
+                }).click(function () {
+                    threadStack.slideToggle(200);
+                }).text(thread['name']);
+                threadItem.show();
+                threadStack.hide();
+                report.children('ul').append(threadItem);
+            });
+            report.show();
+            report.css('border-color', colors[colors.length - 1]);
+            report.css('background-color', colors[colors.length - 1]);
+            report.children('div').hover(function () {
+                report.css('background-color', colors[colors.length - 2]);
+            }, function () {
+                report.css('background-color', colors[colors.length - 1]);
+            }).click(function () {
+                report.children('ul').slideToggle(200);
+            });
+            report.find('.report-name').css('background-color', colors[0]);
+            report.children('ul').hide();
+            reports.append(report);
+        });
+        reports.css('border-color', colors[colors.length - 1]);
+        reports.css('background-color', colors[colors.length - 1]);
+        $('#reports-popup').fadeIn(200);
     });
 }
 

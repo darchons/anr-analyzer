@@ -64,9 +64,9 @@ if __name__ == '__main__':
                 'name': t.name,
                 'stack': [str(s) for s in t.stack]}
                 for t in clus[0].getBackgroundThreads()],
-            'file': clus[0].rawData['info']['file'],
-            'indices': [a.index for a in clus],
             'info': {
+                'file': clus[0].rawData['info']['file'],
+                'indices': [a.index for a in clus],
                 'appVersion': clus[0].rawData['info']['appVersion'],
                 'appBuildID': clus[0].rawData['info']['appBuildID'],
                 'submitted': clus[0].rawData['info']['submitted']
