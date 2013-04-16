@@ -277,7 +277,7 @@ $(function () {
                 cache: true,
                 jsonp: false,
                 jsonpCallback: file.slice(file.lastIndexOf('/') + 1,
-                    file.lastIndexOf('.')).replace('-', '_', 'g'),
+                    file.lastIndexOf('.')).replace('-', '_', 'g').toLowerCase(),
                 success: function (anrList) {
                     gANRLists.push(anrList);
                 },
