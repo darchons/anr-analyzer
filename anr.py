@@ -5,7 +5,7 @@ import array, json, re
 DEBUG = False
 
 ANR_JAVA_METHOD = re.compile(
-    r'([0-9a-zA-Z_\.\$]+)(?:.*?\((.*?)(?::(.*))?\))?')
+    r'([0-9a-zA-Z_\.\$<>]+)(?:.*?\((.*?)(?::(.*))?\))?')
 ANR_NATIVE_FUNCTION = re.compile(
     r'(\d+).*? ([0-9a-fA-F]+)(?:.*? (\S*[/\.]\S+))?(?:.*? \((.+)\))?')
 
@@ -219,12 +219,12 @@ class ANRReport:
             bTokens = b.split('.') # package, 0.2 of weight
             bClass = bTokens[-2].partition('$') # 0.3+0.1 of weight
             bMethod = bTokens[-1] # 0.4 of weight
-            ret = 0.4 if aMethod == bMethod else 0.0
-            ret += ((0.3 + (0.1 if aClass[-1] == bClass[-1] else 0.0))
-                    if aClass[0] == bClass[0] else 0.0)
-            # compare package
-            ret += 0.2 if aTokens[:-2] == bTokens[:-2] else 0.0
-            return ret
+            if aTokens[:-2] != bTokens[:-2]:
+                return 0.0
+            if aClass[0] != bClass[0]:
+                return 0.2
+            return ((0.1 if aClass[-1] == bClass[-1] else 0.0) +
+                    (0.4 if aMethod == bMethod else 0.0) + 0.5)
 
         def __eq__(self, other):
             if DEBUG:

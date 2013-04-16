@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ANR WE SMOOTH YET?</title>
+    <meta charset="UTF-8" />
+    <script type="text/javascript" src="../flot/jquery.js"></script>
+    <script type="text/javascript" src="../flot/jquery.flot.js"></script>
+    <script type="text/javascript" src="../flot/jquery.flot.stack.js"></script>
+    <script type="text/javascript" src="../flot/jquery.flot.time.js"></script>
+    <script type="text/javascript" src="anr.js"></script>
+    <script type="text/javascript" src="anr-analyzer.js"></script>
+    <link href="anr-analyzer.css" rel="stylesheet" />
+</head>
+<body>
+<div id='header'>ANR we smooth yet?</div>
+<div id='subheader'>on Firefox for Android</div>
+<div id="navbar">
+    <ul id="versions" class="options"></ul>
+    <ul id="index" class="options"></ul>
+</div>
+<ul id="tooltip">
+    <li><span id="tooltip-label"></span>: <span id="tooltip-value"></span></li>
+    <li>Reports: <span id="tooltip-count"></span> (<span id="tooltip-percent"></span>%)</li>
+    <li><pre id="tooltip-stack"></pre></li>
+</ul>
+<div id="graphs">
+    <div id="throbber">
+        <div id="throbber-fg">
+            <div><img src="throbber.gif"/></div>
+            <div id="loading">Loading files...</div>
+        </div>
+        <div id="throbber-bg"></div>
+    </div>
+    <div class="graph"></div>
+</div>
+<div id='footer'></div>
+</body>
+</html>
+
