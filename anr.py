@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 import array, json, re
 
@@ -357,11 +357,12 @@ def cluster(anrs, threshold=None, comp=None):
         if i == -1:
             ret.append(r)
             continue
+        l = left[i]
         if l[0].detail > r[0].detail:
             l.extend(r)
         else:
             r.extend(l)
-            l[i] = r
+            left[i] = r
     ret.extend(left)
     return ret
 

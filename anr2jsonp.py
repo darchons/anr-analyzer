@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 from anr import ANRReport, cluster
 
@@ -7,7 +7,8 @@ def anr2jsonp(threshold, inputfile):
     with open(inputfile, 'r') as f:
         anrs = [ANRReport(l) for l in f]
     for i, a in enumerate(anrs):
-        a.index = i
+        a.line = i
+        a.rawData['info']['hasLogcat'] = (len(a.rawData['androidLogcat']) > 100)
     anrfile = os.path.basename(inputfile)
 
     def comp(left, right):
@@ -15,7 +16,9 @@ def anr2jsonp(threshold, inputfile):
         rinfo = right[0].rawData['info']
         if (linfo['appID'] != rinfo['appID'] or
             linfo['appVersion'] != rinfo['appVersion'] or
-            linfo['appBuildID'] != rinfo['appBuildID']):
+            linfo['appBuildID'] != rinfo['appBuildID'] or
+            linfo['version'] != rinfo['version'] or
+            linfo['hasLogcat'] != rinfo['hasLogcat']):
             return False
         lm = left[0].mainThread
         rm = right[0].mainThread
@@ -28,7 +31,9 @@ def anr2jsonp(threshold, inputfile):
     clusters = [a for a in cluster(anrs, comp=comp) if a[0].mainThread]
     for clus in clusters:
         clus[0].rawData['info']['file'] = anrfile
-        clus[0].rawData['info']['submitted'] = anrfile.split('-')[-1]
+        submitted = anrfile.split('-')[-1].split('.')[0]
+        clus[0].rawData['info']['submitted'] = '-'.join(
+            [submitted[:4], submitted[4:6], submitted[6:]])
 
     print 'Combined %d ANRs into %d elements.' % (len(anrs), len(clusters))
 
@@ -66,10 +71,12 @@ if __name__ == '__main__':
                 for t in clus[0].getBackgroundThreads()],
             'info': {
                 'file': clus[0].rawData['info']['file'],
-                'indices': [a.index for a in clus],
+                'line': [a.line for a in clus],
                 'appVersion': clus[0].rawData['info']['appVersion'],
                 'appBuildID': clus[0].rawData['info']['appBuildID'],
-                'submitted': clus[0].rawData['info']['submitted']
+                'submitted': clus[0].rawData['info']['submitted'],
+                'androidVersion': clus[0].rawData['info']['version'],
+                'hasLogcat': clus[0].rawData['info']['hasLogcat']
             }}) for clus in clusters))
         f.write(']);')
 

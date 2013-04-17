@@ -168,17 +168,20 @@ function generateChart(clusters, options) {
         cluster = cluster.sort(function (left, right) {
             var leftIndex = left['info'][indexName],
                 rightIndex = right['info'][indexName];
-            if (leftIndex != rightIndex) {
-                return leftIndex - rightIndex;
+            if (leftIndex !== rightIndex) {
+                return leftIndex < rightIndex ? -1 : 1;
             }
-            for (var index in indexList) {
+            return ['appBuildID', 'submitted'].reduce(function (prev, index) {
+                if (prev) {
+                    return prev;
+                }
                 leftIndex = left['info'][index];
                 rightIndex = right['info'][index];
-                if (leftIndex != rightIndex) {
-                    return leftIndex - rightIndex;
+                if (leftIndex !== rightIndex) {
+                    return leftIndex < rightIndex ? -1 : 1;
                 }
-            }
-            return 0;
+                return 0;
+            }, 0);
         });
         reports.children().not(template).remove();
         cluster.forEach(function (anr) {
@@ -190,8 +193,6 @@ function generateChart(clusters, options) {
             report.find('.report-submitted').text(
                 anr['info']['submitted']);
             var infolist = report.find('.report-info');
-            anr['info']['file'] = anr['file'] || anr['info']['file'];
-            anr['info']['indices'] = anr['indices'] || anr['info']['indices'];
             for (var infokey in anr['info']) {
                 infolist.append($('<li/>').text(
                     infokey + ': ' + anr['info'][infokey]));
@@ -351,7 +352,7 @@ $(function () {
         for (var i = 0; i < gANRSubmits.length; ++i) {
             gANRSubmitTimes[gANRSubmits[i]] =
                 Date.parse(gANRSubmits[i].replace(
-                /^(\d\d\d\d)(\d\d)(\d\d)$/,
+                /^(\d\d\d\d)-(\d\d)-(\d\d)$/,
                 '$1-$2-$3'));
         }
         $('.graph').each(function (index, elem) {
