@@ -10,6 +10,7 @@ onmessage = function (aEvent) {
     anrLists.forEach(function (list) {
         list.forEach(function (anr) {
             anr.__proto__ = ANRReport.prototype;
+            anr.preprocess();
         });
     });
 
@@ -41,6 +42,7 @@ onmessage = function (aEvent) {
         clusters[clusters.length - ANR_PLOT_LIMIT].isOther = true;
     }
     clusters = clusters.splice(-ANR_PLOT_LIMIT);
+    clusters.compareCount = ANRReport.compareCount;
 
     postMessage(clusters);
     self.close();

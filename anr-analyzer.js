@@ -166,13 +166,25 @@ function generateChart(clusters, options) {
             reports = $('#reports'),
             template = $('#report-template');
         cluster = cluster.sort(function (left, right) {
-            return left['info'][indexName] - right['info'][indexName];
+            var leftIndex = left['info'][indexName],
+                rightIndex = right['info'][indexName];
+            if (leftIndex != rightIndex) {
+                return leftIndex - rightIndex;
+            }
+            for (var index in indexList) {
+                leftIndex = left['info'][index];
+                rightIndex = right['info'][index];
+                if (leftIndex != rightIndex) {
+                    return leftIndex - rightIndex;
+                }
+            }
+            return 0;
         });
         reports.children().not(template).remove();
         cluster.forEach(function (anr) {
             var report = template.clone().removeAttr('id');
             report.find('.report-count').text(
-                anr['count'] + ' report' + (anr['count'] > 1 ? 's' : ''));
+                (anr['count'] > 1 ? '(' + anr['count'] + ' duplicates)' : ''));
             report.find('.report-build').text(
                 anr['info']['appBuildID']);
             report.find('.report-submitted').text(
@@ -262,6 +274,7 @@ function refreshGraph(version, index) {
                       '#CC9370', '#CC8D66', '#CC865B', '#CC8051', '#CC7A47',
                       '#CC733D', '#CC6D32', '#CC6728', '#CC611E', '#CC5A14'];
         }
+        // window.alert('Comparisons: ' + aEvent.data.compareCount);
         generateChart(aEvent.data, {
             graph: $('.graph').first(),
             colors: colors,

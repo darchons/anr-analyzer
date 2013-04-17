@@ -29,6 +29,37 @@ ANRReport.arraymerge = function (first, second) {
     return first;
 };
 
+ANRReport.merge2 = function (left, right, key) {
+    var ret = [];
+    for (var i = 0; i < right.length; ++i) {
+        var r = right[i];
+        for (var j = 0; j < left.length; ++j) {
+            if (!left[j]) {
+                continue;
+            }
+            var l = left[j],
+                score = r[0].compare(l[0]);
+            if (key(r, l, score)) {
+                if (l[0].detail() > r[0].detail()) {
+                    ANRReport.arraymerge(l, r);
+                } else {
+                    ANRReport.arraymerge(r, l);
+                    left[j] = r;
+                }
+                r = null;
+                break;
+            }
+        }
+        if (r) {
+            ret.push(r);
+        }
+    }
+    ANRReport.arraymerge(ret, left.filter(function (val) {
+        return !!val;
+    }));
+    return ret;
+};
+
 ANRReport.merge = function (left, right, key) {
 
     // left, right are array of array of ANRReport
@@ -113,6 +144,7 @@ ANRReport.cluster = function (list, key) {
 ANRReport.prototype = {
     // returns similarity [0.0, 1.0]
     compare: function (other) {
+        ANRReport.compareCount = (ANRReport.compareCount || 0) + 1;
         return this._compareStack(this.main, other.main);
     },
 
@@ -120,93 +152,99 @@ ANRReport.prototype = {
         return this.main.length;
     },
 
+    preprocess: function () {
+        function getJavaParts(sig) {
+            var line = sig.lastIndexOf(':'),
+                methodIndex = sig.lastIndexOf('.'),
+                clsIndex = Math.max(1, sig.lastIndexOf('.', methodIndex - 1)),
+                innerIndex = sig.indexOf('$', clsIndex);
+            if (innerIndex == -1 || innerIndex > methodIndex) {
+                innerIndex = methodIndex;
+            }
+            // return [pkg, cls, cls$inner, method]
+            return [sig.slice(2, clsIndex),
+                    sig.slice(clsIndex + 1, innerIndex),
+                    sig.slice(clsIndex + 1, methodIndex),
+                    sig.slice(methodIndex + 1, line)];
+        }
+        function findStart(stackList) {
+            if (stackList._start) {
+                return;
+            }
+            for (var i = 0; i < stackList.length; ++i) {
+                if (stackList[i].startsWith('j')) {
+                    stackList._start = i;
+                    return;
+                }
+            }
+            stackList._start = stackList.length;
+        }
+        function getParts(stackList, start) {
+            if (stackList._javaParts) {
+                return;
+            }
+            stackList._javaParts = stackList.map(function (stack, index) {
+                return index < start ? null : getJavaParts(stack);
+            });
+        }
+        findStart(this.main);
+        getParts(this.main, this.main._start);
+    },
+
     _compareStack: function (left, right) {
-        // left and right are in the form
-        // ['frame 0', 'frame 1', ...]
+        // left and right are indices
         if (left.length < right.length) {
             return this._compareStack(right, left);
         }
-        for (var leftStart = 0; leftStart < left.length; ++leftStart) {
-            if (left[leftStart].startsWith('j')) {
-                break;
-            }
-        }
-        for (var rightStart = 0; rightStart < right.length; ++rightStart) {
-            if (right[rightStart].startsWith('j')) {
-                break;
-            }
-        }
         return 1.0 - (this._compareStackRange(
-                left.slice(leftStart), right.slice(rightStart)) /
-            Math.max(left.length - leftStart, right.length - rightStart));
+                left, left._start, right, right._start) /
+            Math.max(left.length - left._start, right.length - right._start));
     },
 
     // performs DTW matching of two stack ranges and
     // returns a score representing dissimilarity
-    _compareStackRange: function (left, right) {
+    _compareStackRange: function (left, leftStart, right, rightStart) {
         // left and right are in the form
         // ['frame 0', 'frame 1', ...]
         var column = new Array(left.length);
         var prevColumn = new Array(left.length);
 
         // first column
-        column[0] = 1.0 - this._compareStackFrame(left[0], right[0]);
-        for (var j = 1; j < left.length; ++j) {
-            column[j] = column[j - 1] + 1.0 - this._compareStackFrame(left[j], right[0]);
+        column[leftStart] = 1.0 - this._compareStackFrame(left, leftStart, right, rightStart);
+        for (var j = leftStart + 1; j < left.length; ++j) {
+            column[j] = column[j - 1] +
+                1.0 - this._compareStackFrame(left, j, right, rightStart);
         }
         // rest of the columns
-        for (var i = 1; i < right.length; ++ i) {
+        for (var i = rightStart + 1; i < right.length; ++i) {
             var tmp = prevColumn;
             prevColumn = column;
             column = tmp;
-            column[0] = prevColumn[0] + 1.0 - this._compareStackFrame(left[0], right[i]);
-            for (var j = 1; j < left.length; ++j) {
+            column[leftStart] = prevColumn[leftStart] +
+                1.0 - this._compareStackFrame(left, leftStart, right, i);
+            for (var j = leftStart + 1; j < left.length; ++j) {
                 column[j] = Math.min(prevColumn[j], prevColumn[j - 1], column[j - 1]) +
-                    1.0 - this._compareStackFrame(left[j], right[i]);
+                    1.0 - this._compareStackFrame(left, j, right, i);
             }
         }
         return column[column.length - 1];
     },
 
-    _compareStackFrame: function (left, right) {
-        // left and right are in the form
-        // 'j:method:line' or 'c:lib:func'
-        if (left.startsWith('c') || right.startsWith('c')) {
+    _compareStackFrame: function (left, leftIndex, right, rightIndex) {
+        var leftParts = left._javaParts[leftIndex],
+            rightParts = right._javaParts[rightIndex];
+        if (!leftParts || !rightParts) {
             throw 'native stack comparison not implemented!'
         }
-        return this._compareJava(left.split(':'), right.split(':'));
+        return this._compareJava(leftParts, rightParts);
     },
 
-    _compareJava: function (left, right) {
-        // left and right are in the form
-        // ['j', method, line]
-        return this._compareJavaMethod(left[1], right[1]);
+    _compareJava: function (leftParts, rightParts) {
+        return this._compareJavaMethod(leftParts, rightParts);
     },
 
     // returns similarity [0.0, 1.0]
-    _compareJavaMethod: function (left, right) {
-        // left and right are in the form
-        // 'pkg.cls$inner.method'
-        if (!left.length || !right.length) {
-            return 0.0;
-        }
-        if (left && right && left === right) {
-            return 1.0;
-        }
-        function getParts(sig) {
-            var methodIndex = sig.lastIndexOf('.');
-            var clsIndex = sig.lastIndexOf('.', methodIndex - 1);
-            var innerIndex = sig.indexOf('$', clsIndex);
-            if (innerIndex == -1 || innerIndex > methodIndex) {
-                innerIndex = methodIndex;
-            }
-            // return [pkg, cls, cls$inner, method]
-            return [sig.slice(0, clsIndex),
-                    sig.slice(clsIndex + 1, innerIndex),
-                    sig.slice(clsIndex + 1, methodIndex),
-                    sig.slice(methodIndex + 1)];
-        }
-        var leftParts = getParts(left), rightParts = getParts(right);
+    _compareJavaMethod: function (leftParts, rightParts) {
         if (leftParts[0] !== rightParts[0]) {
             return 0.0;
         }

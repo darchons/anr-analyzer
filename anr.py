@@ -357,13 +357,11 @@ def cluster(anrs, threshold=None, comp=None):
         if i == -1:
             ret.append(r)
             continue
-        l = left.pop(i)
         if l[0].detail > r[0].detail:
             l.extend(r)
-            ret.append(l)
         else:
             r.extend(l)
-            ret.append(r)
+            l[i] = r
     ret.extend(left)
     return ret
 
