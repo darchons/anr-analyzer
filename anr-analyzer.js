@@ -153,7 +153,6 @@ function generateChart(clusters, options) {
         graph.trigger('plothover', [event, null, null]);
     });
 
-    $('#reports-popup').fadeOut(200);
     $('#reports-close div').click(function () {
         $('#reports-popup').fadeOut(200);
     }).css('background-color', colors[colors.length - 1]);
@@ -233,6 +232,7 @@ function generateChart(clusters, options) {
 
 function refreshGraph(version, index) {
 
+    $('#reports-popup').fadeOut(200);
     $('#throbber').fadeIn(500);
     if (gANRLists.length == 0) {
         $('#loading').text("There is no data! There is only XU... uh nevermind");
