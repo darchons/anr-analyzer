@@ -81,7 +81,13 @@ function generateChart(clusters, options) {
         },
         xaxis: {
             mode: 'time',
-            timeformat: data[0].length > 10 ? '%m/%d' : '%Y/%m/%d'
+            timeformat: (function () {
+                var keys = Object.keys(totalCount);
+                keys.sort();
+                return (indexAxis[keys[keys.length - 1]] -
+                    indexAxis[keys[0]]) > 10 * 24 * 60 * 60 * 1000 ?
+                    '%m/%d' : '%Y/%m/%d'
+            })()
         },
         yaxis: {
             minTickSize: 1
