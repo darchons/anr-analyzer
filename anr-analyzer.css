@@ -126,6 +126,12 @@ html, body {
     cursor: pointer;
 }
 
+#reports-info {
+    color: white;
+    text-align: right;
+    padding: 10px;
+}
+
 #reports {
     margin: -45px auto 0px auto;
     width: 900px;

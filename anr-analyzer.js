@@ -30,7 +30,7 @@ var gANRSubmits, gANRSubmitTimes;
 function generateChart(clusters, options) {
     var graph = options['graph'],
         colors = options['colors'],
-        indexName = options['index'] || 'appBuildID';
+        indexName = options['index'] || 'submitted';
     var indexList = {'appBuildID': gANRBuilds,
                      'submitted': gANRSubmits}[indexName],
         indexAxis = {'appBuildID': gANRBuildTimes,
@@ -80,7 +80,7 @@ function generateChart(clusters, options) {
         },
         xaxis: {
             mode: 'time',
-            timeformat: '%m/%d'
+            timeformat: '%Y/%m/%d'
         },
         yaxis: {
             minTickSize: 1
@@ -99,24 +99,53 @@ function generateChart(clusters, options) {
         }
         return series;
     }
+    function getSeriesFromPos(pos) {
+        var leftIndex, rightIndex;
+        var indexArray = Object.keys(indexAxis).map(function (val) {
+            return indexAxis[val];
+        });
+        if (pos.y < 0 || pos.x < indexArray[0] ||
+            pos.x >= indexArray[indexArray.length - 1]) {
+            return null;
+        }
+        for (leftIndex = 0; leftIndex < indexArray.length - 1; ++leftIndex) {
+            rightIndex = leftIndex + 1;
+            if (pos.x < indexArray[rightIndex]) {
+                break;
+            }
+        }
+        var left = 0, right = 0;
+        for (var i = 0; i < data.length; ++i) {
+            left += data[i][leftIndex][1];
+            right += data[i][rightIndex][1];
+            var interpolated = (right - left) /
+                (indexArray[rightIndex] - indexArray[leftIndex]) *
+                (pos.x - indexArray[leftIndex]) + left;
+            if (interpolated > pos.y) {
+                return i;
+            }
+        }
+        return null;
+    }
 
-    var prevItem = null;
+    var prevItem = null, prevSeries = null, showingTooltip = false;
     graph.unbind("plothover");
     graph.bind("plothover", function (event, pos, item) {
+        var showTooltip = false, hideTooltip = false;
+        var series = null;
         if (item) {
+            series = getNonEmptySeries(item);
             if (item.datapoint.toString() !== prevItem) {
                 prevItem = item.datapoint.toString();
-                var series = getNonEmptySeries(item),
-                    cluster = clusters[series],
-                    tooltip = $('#tooltip'),
+                var cluster = clusters[series],
+                    label = indexLabel,
                     index = data[series][item.dataIndex][0],
                     count = data[series][item.dataIndex][1],
-                    total = totalCount[index];
-                $('#tooltip-label').text(indexLabel);
-                $('#tooltip-value').text(index);
-                $('#tooltip-count').text(count);
-                $('#tooltip-percent').text(Math.round(100 * (total ? count / total : 1)));
-                $('#tooltip-stack').text((function () {
+                    total = totalCount[index],
+                    pageX = item.pageX,
+                    pageY = item.pageY,
+                    stack;
+                stack = (function () {
                     if (cluster.isOther) {
                         return 'Other ANRs'; // 'other' category
                     }
@@ -125,22 +154,61 @@ function generateChart(clusters, options) {
                     }).splice(0, STACK_LIMIT).map(function (val) {
                         return val.split(':')[1];
                     }).join('\n');
-                })());
-                tooltip.css('background-color', colors[colors.length - 1]);
-                tooltip.css('border-color', colors[colors.length - 1]);
-                var l = item.pageX,
-                    t = item.pageY,
-                    off = graph.offset();
-                l = l <= (off.left + graph.width() / 2) ?
-                    l + 5 : l - tooltip.outerWidth() - 5;
-                t = t <= (off.top + graph.height() / 2) ?
-                    t + 5 : t - tooltip.outerHeight() - 5;
-                tooltip.offset({left: l, top: t});
-                tooltip.css('visibility', 'visible');
-                tooltip.stop(true).animate({opacity: 1}, 200);
+                })()
+                showTooltip = true;
             }
-        } else if (prevItem !== null) {
-            prevItem = null;
+        } else {
+            series = getSeriesFromPos(pos);
+            if (prevItem !== null) {
+                prevItem = null;
+                hideTooltip = true;
+            }
+        }
+
+        var seriesoptions = plot.getData();
+        if (showTooltip || (!hideTooltip && series !== null)) {
+            if (prevSeries !== null) {
+                seriesoptions[prevSeries].lines.fillColor = null;
+            }
+            var c = $.color.parse(seriesoptions[series].color);
+            c.a = 0.8;
+            seriesoptions[series].lines.fillColor = c.toString();
+            plot.draw();
+            prevSeries = series;
+        } else if (hideTooltip || prevSeries !== null) {
+            seriesoptions[prevSeries].lines.fillColor = null;
+            plot.draw();
+            prevSeries = null;
+        }
+
+        if (showTooltip) {
+            var tooltip = $('#tooltip');
+            $('#tooltip-label').text(label);
+            $('#tooltip-value').text(index);
+            $('#tooltip-count').text(count);
+            $('#tooltip-percent').text(Math.round(100 * (total ? count / total : 1)));
+            if (stack) {
+                $('#tooltip-stack').text(stack).show();
+            } else {
+                $('#tooltip-stack').hide();
+            }
+            tooltip.css('background-color', colors[colors.length - 1]);
+            tooltip.css('border-color', colors[colors.length - 1]);
+            var l = pageX,
+                t = pageY,
+                off = graph.offset();
+            l = l <= (off.left + graph.width() / 2) ?
+                l + 10 : l - tooltip.outerWidth() - 10;
+            t = t <= (off.top + graph.height() / 2) ?
+                t + 10 : t - tooltip.outerHeight() - 10;
+            tooltip.offset({left: l, top: t});
+            tooltip.css('visibility', 'visible');
+            if (!showingTooltip) {
+                tooltip.stop(true).animate({opacity: 1}, 200);
+                showingTooltip = true;
+            }
+        } else if (hideTooltip) {
+            showingTooltip = false;
             $('#tooltip').stop(true).animate({opacity: 0}, {
                 duration: 200,
                 complete: function () {
@@ -161,12 +229,18 @@ function generateChart(clusters, options) {
     }).css('background-color', colors[colors.length - 1]);
     graph.unbind("plotclick");
     graph.bind("plotclick", function (event, pos, item) {
-        if (!item) {
+        var series;
+        if (item) {
+            series = getNonEmptySeries(item);
+        } else {
+            series = getSeriesFromPos(pos);
+        }
+        if (series === null) {
             return;
         }
-        var series = getNonEmptySeries(item),
-            cluster = clusters[series],
+        var cluster = clusters[series],
             reports = $('#reports'),
+            info = $('#reports-info'),
             template = $('#report-template');
         cluster = cluster.sort(function (left, right) {
             var leftIndex = left['info'][indexName],
@@ -186,7 +260,21 @@ function generateChart(clusters, options) {
                 return 0;
             }, 0);
         });
-        reports.children().not(template).remove();
+        $('#reports-rank').text(clusters.length - series);
+        $('#reports-total').text(clusters.length);
+        var count = data[series].reduce(function (prevVal, val) {
+                    return prevVal + val[1];
+                }, 0),
+            total = (function () {
+                    var t = 0;
+                    $.each(totalCount, function (i, c) {
+                        t += c;
+                    });
+                    return t;
+                })();
+        $('#reports-count').text(count);
+        $('#reports-percent').text(Math.round(100 * (total ? count / total : 1)));
+        reports.children().not(template).not(info).remove();
         cluster.forEach(function (anr) {
             var report = template.clone().removeAttr('id');
             report.find('.report-count').text(
