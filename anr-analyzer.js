@@ -63,6 +63,7 @@ function generateChart(clusters, options) {
             return [indexAxis[point[0]], point[1]];
         });
     });
+
     var plot = $.plot(graph, plotdata, {
         series: {
             stack: true,
@@ -101,7 +102,9 @@ function generateChart(clusters, options) {
     }
     function getSeriesFromPos(pos) {
         var leftIndex, rightIndex;
-        var indexArray = Object.keys(indexAxis).map(function (val) {
+        var indexArray = Object.keys(indexAxis).filter(function (val) {
+            return val in totalCount;
+        }).map(function (val) {
             return indexAxis[val];
         });
         if (pos.y < 0 || pos.x < indexArray[0] ||
