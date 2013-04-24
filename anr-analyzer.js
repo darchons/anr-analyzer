@@ -81,7 +81,7 @@ function generateChart(clusters, options) {
         },
         xaxis: {
             mode: 'time',
-            timeformat: '%Y/%m/%d'
+            timeformat: data[0].length > 10 ? '%m/%d' : '%Y/%m/%d'
         },
         yaxis: {
             minTickSize: 1
