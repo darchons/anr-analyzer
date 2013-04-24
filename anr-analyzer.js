@@ -230,17 +230,8 @@ function generateChart(clusters, options) {
     $('#reports-close div').click(function () {
         $('#reports-popup').fadeOut(200);
     }).css('background-color', colors[colors.length - 1]);
-    graph.unbind("plotclick");
-    graph.bind("plotclick", function (event, pos, item) {
-        var series;
-        if (item) {
-            series = getNonEmptySeries(item);
-        } else {
-            series = getSeriesFromPos(pos);
-        }
-        if (series === null) {
-            return;
-        }
+
+    function openReports(series, file, line) {
         var cluster = clusters[series],
             reports = $('#reports'),
             info = $('#reports-info'),
@@ -263,6 +254,7 @@ function generateChart(clusters, options) {
                 return 0;
             }, 0);
         });
+
         $('#reports-rank').text(clusters.length - series);
         $('#reports-total').text(clusters.length);
         var count = data[series].reduce(function (prevVal, val) {
@@ -277,6 +269,8 @@ function generateChart(clusters, options) {
                 })();
         $('#reports-count').text(count);
         $('#reports-percent').text(Math.round(100 * (total ? count / total : 1)));
+
+        var scrollToReport = null;
         reports.children().not(template).not(info).remove();
         cluster.forEach(function (anr) {
             var report = template.clone().removeAttr('id');
@@ -291,12 +285,14 @@ function generateChart(clusters, options) {
                 infolist.append($('<li/>').text(
                     infokey + ': ' + anr['info'][infokey]));
             }
+
             var main = report.find('.report-main');
             anr['main'].forEach(function (stack) {
                 main.append($('<li/>').text(
                     ANRReport.getFrame(stack)
                 ).css('color', stack.startsWith('j') ? '': '#888'));
             })
+
             var threadTemplate = report.find('.report-threads');
             anr['threads'].forEach(function (thread) {
                 var threadItem = threadTemplate.clone(),
@@ -317,6 +313,7 @@ function generateChart(clusters, options) {
                 threadStack.hide();
                 report.children('ul').append(threadItem);
             });
+
             report.show();
             report.css('border-color', colors[colors.length - 1]);
             report.css('background-color', colors[colors.length - 1]);
@@ -328,13 +325,53 @@ function generateChart(clusters, options) {
                 report.children('ul').slideToggle(200);
             });
             report.find('.report-name').css('background-color', colors[0]);
-            report.children('ul').hide();
+            if (file && line && anr['info']['file'] === file &&
+                anr['info']['line'] === line) {
+                scrollToReport = report;
+            } else {
+                report.children('ul').hide();
+            }
             reports.append(report);
         });
         reports.css('border-color', colors[colors.length - 1]);
         reports.css('background-color', colors[colors.length - 1]);
-        $('#reports-popup').fadeIn(200);
+        $('#reports-popup').fadeIn(200, function () {
+            reports.animate({
+                scrollTop: scrollToReport ? reports.scrollTop() +
+                    scrollToReport.position().top : 0
+            }, 100);
+        });
+    }
+
+    graph.unbind("plotclick");
+    graph.bind("plotclick", function (event, pos, item) {
+        var series;
+        if (item) {
+            series = getNonEmptySeries(item);
+        } else {
+            series = getSeriesFromPos(pos);
+        }
+        if (series === null) {
+            return;
+        }
+        openReports(series);
     });
+
+    if (gQueryVars['f'] && gQueryVars['l']) {
+        clusters.some(function (cluster, series) {
+            return cluster.some(function (anr) {
+                if (anr['info']['file'] !== gQueryVars['f'] ||
+                    anr['info']['line'].indexOf(
+                        parseInt(gQueryVars['l'])) < 0) {
+                    return false;
+                }
+                openReports(series, gQueryVars['f'], anr['info']['line']);
+                delete gQueryVars['f'];
+                delete gQueryVars['l'];
+                return true;
+            });
+        });
+    }
 }
 
 function refreshGraph(version, index) {
@@ -405,6 +442,7 @@ $(function () {
         ret.sort();
         return ret;
     }
+
     function filesLoaded() {
         gANRVersions = getInfo('appVersion');
         gANRVersions.reverse();
@@ -414,13 +452,17 @@ $(function () {
 
         gANRVersions.forEach(function (val) {
             $('#versions').append($('<li/>').append($('<a/>', {
-                href: '#v' + val,
+                href: '#v:' + val,
                 text: val
             }).click(function () {
-                version = $(this).attr('href').slice(2);
+                version = $(this).attr('href').slice(3);
                 refreshGraph(version, index);
             })));
+            if (gQueryVars['v'] === val) {
+                version = val;
+            }
         });
+
         ['appBuildID', 'submitted'].forEach(function (val) {
             $('#index').append($('<li/>').append($('<a/>', {
                 href: '#' + val,
@@ -432,7 +474,11 @@ $(function () {
                 index = $(this).attr('href').slice(1);
                 refreshGraph(version, index);
             })));
+            if (gQueryVars[val.toLowerCase()]) {
+                index = val;
+            }
         });
+
         gANRBuilds = getInfo('appBuildID');
         gANRBuildTimes = {};
         for (var i = 0; i < gANRBuilds.length; ++i) {
@@ -454,6 +500,7 @@ $(function () {
         });
         refreshGraph(version, index);
     }
+
     window.setTimeout(function () {
         var files = gQueryVars['files'].split(',');
         var completed = 0;
