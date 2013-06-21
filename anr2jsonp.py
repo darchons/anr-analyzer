@@ -18,12 +18,9 @@ def anr2jsonp(threshold, inputfile):
     def comp(left, right):
         linfo = left[0].rawData['info']
         rinfo = right[0].rawData['info']
-        if (linfo['appID'] != rinfo['appID'] or
-            linfo['appVersion'] != rinfo['appVersion'] or
-            linfo['appBuildID'] != rinfo['appBuildID'] or
-            linfo['version'] != rinfo['version'] or
-            linfo['hasLogcat'] != rinfo['hasLogcat']):
-            return False
+        for key in linfo:
+            if key in rinfo and linfo[key] != rinfo[key]:
+                return False
         lm = left[0].mainThread
         rm = right[0].mainThread
         if (lm == rm) < threshold:
@@ -64,6 +61,12 @@ if __name__ == '__main__':
         print 'Processing %s...' % (inputfile)
         clusters.extend(anr2jsonp(threshold, inputfile))
 
+    def getInfo(clus):
+        info = {'line': [a.line for a in clus]}
+        for key in clus[0].rawData['info']:
+            info[key] = clus[0].rawData['info'][key]
+        return info
+
     with open(outputfile, 'w') as f:
         f.write(outputfile.split('/')[-1].split('.')[0].replace('-', '_') + '([');
         f.write(','.join(json.dumps({
@@ -73,14 +76,7 @@ if __name__ == '__main__':
                 'name': t.name,
                 'stack': [str(s) for s in t.stack]}
                 for t in clus[0].getBackgroundThreads()],
-            'info': {
-                'file': clus[0].rawData['info']['file'],
-                'line': [a.line for a in clus],
-                'appVersion': clus[0].rawData['info']['appVersion'],
-                'appBuildID': clus[0].rawData['info']['appBuildID'],
-                'submitted': clus[0].rawData['info']['submitted'],
-                'androidVersion': clus[0].rawData['info']['version'],
-                'hasLogcat': clus[0].rawData['info']['hasLogcat']
-            }}) for clus in clusters))
+            'info': getInfo(clus)
+        }) for clus in clusters))
         f.write(']);')
 
