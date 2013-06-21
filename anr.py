@@ -107,13 +107,17 @@ class ANRReport:
 
     class StackFrame:
 
-        def __init__(self, frame, isNative):
+        def __init__(self, frame, isNative, libs=None):
             self.isNative = isNative
+            self.isProfiler = False
             self.javaMethod = self.javaFile = self.javaLine = None
             self.nativeId = self.nativeAddress = None
             self.nativeLib = self.nativeFunction = None
             try:
-                if isNative:
+                if not isinstance(frame, basestring):
+                    self.isNative = self.isProfiler = True
+                    self._initProfiler(frame, libs)
+                elif isNative:
                     self._initNative(frame)
                 else:
                     self._initJava(frame)
@@ -135,6 +139,26 @@ class ANRReport:
             self.nativeAddress = int(tokens[2], 16)
             self.nativeLib = tokens[3]
             self.nativeFunction = tokens[4]
+
+        def _initProfiler(self, frame, libs):
+            self.natvieId = 0
+            self.nativeAddress = 0
+            self.nativeLib = ''
+            location = frame['location']
+            if location[0].isdigit():
+                address = int(location, 0)
+                for lib in libs:
+                    if lib['start'] > address or lib['end'] <= address:
+                        continue
+                    self.nativeLib = lib['name']
+                    address -= lib['start'] - (lib['offset'] if 'offset' in lib else 0)
+                    break
+                self.nativeAddress = address
+                location = hex(address)
+
+            self.nativeFunction = location
+            if 'line' in frame:
+                self.nativeFunction += '+' + str(frame['line'])
 
         def __str__(self):
             if self.isNative:
@@ -293,6 +317,22 @@ class ANRReport:
             stack.append(ANRReport.StackFrame(line[1:], isNative=True))
             return
 
+    def _parseProfiler(self):
+        if 'threads' not in self._nativeStack:
+            self._nativeStack = None
+            return
+
+        libs = {}
+        if 'libs' in self._nativeStack:
+            libs = json.loads(self._nativeStack['libs'])
+            self._nativeStack['libs'] = libs
+
+        for t in self._nativeStack['threads']:
+            stack = [ANRReport.StackFrame(f, True, libs)
+                    for f in reversed(t['samples'][0]['frames'])]
+            self.threads.append(ANRReport.Thread(
+                    t['name'] + ' (native)', [], {}, stack))
+
     def __init__(self, raw):
         self.rawData = json.loads(raw)
         self.threads = []
@@ -307,10 +347,19 @@ class ANRReport:
         if name:
             # save last thread
             self.threads.append(ANRReport.Thread(name, states, props, stack))
+        # process native stack
+        self._nativeStack = None
+        if 'androidNativeStack' in self.rawData:
+            self._nativeStack = json.loads(self.rawData['androidNativeStack'])
+            self._parseProfiler()
 
     @property
     def log(self):
         return self['androidLogcat']
+
+    @property
+    def nativeStack(self):
+        return self._nativeStack
 
     def getThread(self, name):
         try:

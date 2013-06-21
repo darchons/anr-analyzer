@@ -24,6 +24,7 @@ if __name__ == '__main__':
             anr = ANRReport(l)
             traces = anr.rawData.pop('androidANR', None)
             logcat = anr.rawData.pop('androidLogcat', None)
+            nativeStack = anr.rawData.pop('androidNativeStack', None)
             print '===== ANR file %s line %d =====' % (
                 os.path.basename(sys.argv[1]), line)
             print json.dumps(anr.rawData, indent=4)
@@ -33,6 +34,10 @@ if __name__ == '__main__':
             print '===== raw logcat ====='
             print logcat
             print '===== end raw logcat ====='
+            if anr.nativeStack:
+                print '===== raw native stack ====='
+                print json.dumps(anr.nativeStack, indent=4)
+                print '===== end raw native stack ====='
             print '===== END ANR ====='
             print
 

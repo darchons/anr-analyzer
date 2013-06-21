@@ -13,6 +13,7 @@ def anr2jsonp(threshold, inputfile):
     for i, a in enumerate(anrs):
         a.line = i
         a.rawData['info']['hasLogcat'] = (len(a.rawData['androidLogcat']) > 100)
+        a.rawData['info']['hasNativeStack'] = a.nativeStack is not None
     anrfile = os.path.basename(inputfile)
 
     def comp(left, right):
