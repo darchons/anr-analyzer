@@ -328,6 +328,10 @@ class ANRReport:
             self._nativeStack['libs'] = libs
 
         for t in self._nativeStack['threads']:
+            if ('samples' not in t or
+                len(t['samples']) == 0 or
+                'frames' not in t['samples'][0]):
+                continue
             stack = [ANRReport.StackFrame(f, True, libs)
                     for f in reversed(t['samples'][0]['frames'])]
             self.threads.append(ANRReport.Thread(
