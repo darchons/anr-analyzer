@@ -354,7 +354,9 @@ class ANRReport:
         # process native stack
         self._nativeStack = None
         if 'androidNativeStack' in self.rawData:
-            self._nativeStack = json.loads(self.rawData['androidNativeStack'])
+            nativeStack = self.rawData['androidNativeStack']
+            self._nativeStack = (json.loads(nativeStack)
+                if isinstance(nativeStack, basestring) else nativeStack)
             self._parseProfiler()
 
     @property
@@ -389,7 +391,9 @@ class ANRReport:
     @property
     def detail(self):
         t = self.mainThread
-        return 0 if not t else len(t.stack)
+        return 0 if not t else (
+            len(t.stack) * 2 +
+            sum(len(t.stack) for t in self.getBackgroundThreads()))
 
     def __eq__(self, other):
         return self.mainThread == other.mainThread
