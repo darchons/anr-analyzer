@@ -12,8 +12,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     DATE_FORMAT = '%Y%m%d'
-    fromDate = datetime.strptime(sys.argv[2], DATE_FORMAT)
-    toDate = datetime.strptime(sys.argv[3], DATE_FORMAT)
+    fromDate = datetime.strptime(sys.argv[1], DATE_FORMAT)
+    toDate = datetime.strptime(sys.argv[2], DATE_FORMAT)
 
     if toDate < fromDate:
         print 'To date is less than from date'
@@ -49,12 +49,13 @@ if __name__ == '__main__':
             }
         }]
     }))
+    filterfile.flush()
 
     args = ['python', '-m', 'mapreduce.job',
             os.path.join(os.path.dirname(sys.argv[0]), 'mapreduce.py'),
-            '--input-filter', filterjson.name,
-            '--num-mappers', 16,
-            '--num-reducers', 4,
+            '--input-filter', filterfile.name,
+            '--num-mappers', '16',
+            '--num-reducers', '4',
             '--data-dir', '/mnt/telemetry/work',
             '--work-dir', '/mnt/telemetry/work',
             '--output', '/mnt/telemetry/anr-%s-%s.txt' % (mindate, maxdate),
