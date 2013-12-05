@@ -16,6 +16,8 @@ def map(slug, dims, value, context):
     context.write(tuple(stack), (slug, dims, value))
 
 def reduce(key, values, context):
+    if not values:
+        return
     info = [{} for i in range(len(values[0][1]))]
     anrs = []
     slugs = []
