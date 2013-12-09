@@ -2,7 +2,7 @@
 
 import gzip, os, json, subprocess, sys, tempfile
 
-def runJob(mindate, maxdate, dims, workdir, outfile):
+def runJob(job, dims, workdir, outfile):
     with tempfile.NamedTemporaryFile('w', suffix='.json') as filterfile:
         filterfile.write(json.dumps({
             'version': 1,
@@ -11,7 +11,7 @@ def runJob(mindate, maxdate, dims, workdir, outfile):
         filterfile.flush()
 
         args = ['python', '-m', 'mapreduce.job',
-                os.path.join(os.path.dirname(sys.argv[0]), 'mapreduce.py'),
+                os.path.join(os.path.dirname(sys.argv[0]), job),
                 '--input-filter', filterfile.name,
                 '--num-mappers', '16',
                 '--num-reducers', '4',
@@ -35,6 +35,7 @@ def processJob(dims, jobfile, outdir):
     backgroundthreads = {}
     slugs = {}
     dimsinfo = [{} for i in range(len(dims))]
+    dimvalues = [set() for i in range(len(dims))]
     for line in jobfile:
         anr = json.loads(line.partition('\t')[2])
         slug = anr['slugs'][0]
@@ -45,6 +46,7 @@ def processJob(dims, jobfile, outdir):
         for i, infocounts in enumerate(info):
             for key, value in infocounts.iteritems():
                 dimsinfo[i].setdefault(slug, {})[key] = value
+                dimvalues[i].add(key)
 
     def saveFile(name, index, data):
         fn = name + '.json'
@@ -57,7 +59,22 @@ def processJob(dims, jobfile, outdir):
     saveFile('background_threads', index, backgroundthreads)
     for i, dim in enumerate(dimsinfo):
         field = dims[i]['field_name']
+        dims[i]['allowed_values'] = list(dimvalues[i])
         saveFile(field, index['dimensions'], dim)
+
+    sessions = {}
+    dims[0]['allowed_values'] = 'saved-session';
+    workdir = tempfile.mkdtemp()
+    with tempfile.NamedTemporaryFile('r', suffix='.txt') as outfile:
+        runJob("mapreduce-sessions.py", dims, workdir, outfile)
+        with open(outfile.name, 'r') as sessionsfile:
+            for line in sessionsfile:
+                parts = line.partition('\t')
+                key = json.loads(parts[0])
+                aggregate = json.loads(parts[2])
+                sessions[dims[key[0]]['field_name']][key[1]] = aggregate
+    saveFile('sessions', index, sessions)
+
     with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
         outfile.write(json.dumps(index))
 
@@ -114,9 +131,7 @@ if __name__ == '__main__':
     }]
 
     with tempfile.NamedTemporaryFile('r', suffix='.txt') as outfile:
-        runJob(fromDate.strftime(DATE_FORMAT),
-               toDate.strftime(DATE_FORMAT),
-               dims, workdir, outfile)
+        runJob("mapreduce.py", dims, workdir, outfile)
         with open(outfile.name, 'r') as jobfile:
             processJob(dims, jobfile, outdir)
 
