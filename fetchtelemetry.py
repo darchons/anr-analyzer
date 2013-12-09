@@ -17,7 +17,7 @@ def runJob(mindate, maxdate, dims, workdir, outfile):
                 '--num-reducers', '4',
                 '--data-dir', workdir,
                 '--work-dir', workdir,
-                '--output', outfile,
+                '--output', outfile.name,
                 '--bucket', 'telemetry-published-v1']
 
         env = os.environ
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     mindate = fromDate.strftime(DATE_FORMAT)
     maxdate = toDate.strftime(DATE_FORMAT)
     workdir = tempfile.mkdtemp()
-    outdir = os.path.join(tempfile.gettempdir, 'anr-%s-%s' % (mindate, maxdate))
+    outdir = os.path.join(tempfile.gettempdir(), 'anr-%s-%s' % (mindate, maxdate))
 
     print 'Range: %s to %s' % (mindate, maxdate)
     print 'Work dir: %s' % workdir
