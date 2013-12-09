@@ -81,6 +81,10 @@ if __name__ == '__main__':
     maxdate = toDate.strftime(DATE_FORMAT)
     workdir = tempfile.mkdtemp()
     outdir = os.path.join(tempfile.gettempdir(), 'anr-%s-%s' % (mindate, maxdate))
+    try:
+        os.makedirs(outdir)
+    except OSError:
+        pass
 
     print 'Range: %s to %s' % (mindate, maxdate)
     print 'Work dir: %s' % workdir
@@ -113,7 +117,8 @@ if __name__ == '__main__':
         runJob(fromDate.strftime(DATE_FORMAT),
                toDate.strftime(DATE_FORMAT),
                dims, workdir, outfile)
-        processJob(dims, outfile, outdir);
+        with open(outfile.name, 'r') as jobfile:
+            processJob(dims, jobfile, outdir)
 
     print 'Completed'
 
