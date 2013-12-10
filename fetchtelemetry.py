@@ -48,7 +48,7 @@ def processJob(dims, jobfile, sessionsdir, outdir):
             for key, value in infocounts.iteritems():
                 dimsinfo[i].setdefault(slug, {})[key] = value
                 dimvalues[i].add(key)
-                for k, v in value.iteritems:
+                for k, v in value.iteritems():
                     allowed_infos.setdefault(k, set()).update(v.iterkeys())
 
     def saveFile(name, index, data):
@@ -73,7 +73,7 @@ def processJob(dims, jobfile, sessionsdir, outdir):
             def stripval(k, v):
                 ret = {x: y for x, y in v.iteritems()
                         if x in allowed_infos[k]}
-                ret[""] = sum(v.itervalues() - sum(ret.itervalues())
+                ret[""] = sum(v.itervalues()) - sum(ret.itervalues())
                 return ret
             for line in sessionsfile:
                 parts = line.partition('\t')
@@ -106,11 +106,11 @@ if __name__ == '__main__':
 
     mindate = fromDate.strftime(DATE_FORMAT)
     maxdate = toDate.strftime(DATE_FORMAT)
-    workdir = os.path.join('/mnt', 'tmp-anr-%s-%s' % (mindate, maxdate)
+    workdir = os.path.join('/mnt', 'tmp-anr-%s-%s' % (mindate, maxdate))
     if not os.path.exists(workdir):
         os.makedirs(workdir)
 
-    sessionsdir = os.path.join('/mnt', 'tmp-sessions-%s-%s' % (mindate, maxdate)
+    sessionsdir = os.path.join('/mnt', 'tmp-sessions-%s-%s' % (mindate, maxdate))
     if not os.path.exists(sessionsdir):
         os.makedirs(sessionsdir)
 
