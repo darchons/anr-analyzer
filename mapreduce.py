@@ -12,12 +12,23 @@ def map(slug, dims, value, context):
     if not mainThread:
         return
     stack = mainThread.stack
-    stack = [str(frame).split(':')[1] for frame in stack if not frame.isNative]
-    stack = [processFrame(frame) for frame in stack if (
-            not frame.startswith('java.lang.') and
-            not frame.startswith('com.android.') and
-            not frame.startswith('dalvik.')
-        )]
+    stack = [str(frame).split(':')[1] for frame in stack
+             if not frame.isNative]
+    # least stable to most stable
+    ignoreList = [
+        'com.android.internal.',
+        'com.android.',
+        'dalvik.',
+        'android.view.',
+        'android.',
+        'java.lang.',
+    ]
+    stack = [processFrame(frame) for frame in stack
+             if any(frame.startswith(prefix) for prefix in ignoreList)]
+    while ignoreList and len(stack) < 10:
+        ignoreList.pop()
+        stack = [processFrame(frame) for frame in stack
+                 if any(frame.startswith(prefix) for prefix in ignoreList)]
     context.write(tuple(stack), (slug, dims, value))
 
 def reduce(key, values, context):
