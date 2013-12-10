@@ -1,5 +1,10 @@
-import json
+import json, re
 from anr import ANRReport
+
+re_subname = re.compile(r'\$\w+')
+
+def processFrame(frame):
+    return re_subname.sub('', frame)
 
 def map(slug, dims, value, context):
     anr = ANRReport(value)
@@ -8,7 +13,7 @@ def map(slug, dims, value, context):
         return
     stack = mainThread.stack
     stack = [str(frame).split(':')[1] for frame in stack if not frame.isNative]
-    stack = [frame for frame in stack if (
+    stack = [processFrame(frame) for frame in stack if (
             not frame.startswith('java.lang.') and
             not frame.startswith('com.android.') and
             not frame.startswith('dalvik.')
