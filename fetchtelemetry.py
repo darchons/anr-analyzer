@@ -3,7 +3,7 @@
 import gzip, os, json, subprocess, sys, tempfile
 
 def runJob(job, dims, workdir, outfile):
-    with tempfile.NamedTemporaryFile('w', suffix='.json') as filterfile:
+    with tempfile.NamedTemporaryFile('w', suffix='.json', dir=workdir) as filterfile:
         filterfile.write(json.dumps({
             'version': 1,
             'dimensions': dims
@@ -27,7 +27,7 @@ def runJob(job, dims, workdir, outfile):
             print 'Error %d' % (ret)
             sys.exit(ret)
 
-def processJob(dims, jobfile, outdir):
+def processJob(dims, jobfile, sessionsdir, outdir):
     index = {
         'dimensions': {},
     }
@@ -67,9 +67,8 @@ def processJob(dims, jobfile, outdir):
 
     sessions = {}
     dims[0]['allowed_values'] = ['saved-session'];
-    workdir = tempfile.mkdtemp()
-    with tempfile.NamedTemporaryFile('r', suffix='.txt') as outfile:
-        runJob("mapreduce-sessions.py", dims, workdir, outfile)
+    with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
+        runJob("mapreduce-sessions.py", dims, sessionsdir, outfile)
         with open(outfile.name, 'r') as sessionsfile:
             def stripval(k, v):
                 ret = {x: y for x, y in v.iteritems()
@@ -107,12 +106,17 @@ if __name__ == '__main__':
 
     mindate = fromDate.strftime(DATE_FORMAT)
     maxdate = toDate.strftime(DATE_FORMAT)
-    workdir = tempfile.mkdtemp()
-    outdir = os.path.join(tempfile.gettempdir(), 'anr-%s-%s' % (mindate, maxdate))
-    try:
+    workdir = os.path.join('/mnt', 'tmp-anr-%s-%s' % (mindate, maxdate)
+    if not os.path.exists(workdir):
+        os.makedirs(workdir)
+
+    sessionsdir = os.path.join('/mnt', 'tmp-sessions-%s-%s' % (mindate, maxdate)
+    if not os.path.exists(sessionsdir):
+        os.makedirs(sessionsdir)
+
+    outdir = os.path.join('/mnt', 'anr-%s-%s' % (mindate, maxdate))
+    if not os.path.exists(outdir):
         os.makedirs(outdir)
-    except OSError:
-        pass
 
     print 'Range: %s to %s' % (mindate, maxdate)
     print 'Work dir: %s' % workdir
@@ -141,10 +145,10 @@ if __name__ == '__main__':
         }
     }]
 
-    with tempfile.NamedTemporaryFile('r', suffix='.txt') as outfile:
+    with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
         runJob("mapreduce.py", dims, workdir, outfile)
         with open(outfile.name, 'r') as jobfile:
-            processJob(dims, jobfile, outdir)
+            processJob(dims, jobfile, sessionsdir, outdir)
 
     print 'Completed'
 
