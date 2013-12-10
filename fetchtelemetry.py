@@ -30,6 +30,7 @@ def runJob(job, dims, workdir, outfile):
 def processJob(dims, jobfile, sessionsdir, outdir):
     index = {
         'dimensions': {},
+        'sessions': {},
     }
     mainthreads = {}
     backgroundthreads = {}
@@ -51,9 +52,9 @@ def processJob(dims, jobfile, sessionsdir, outdir):
                 for k, v in value.iteritems():
                     allowed_infos.setdefault(k, set()).update(v.iterkeys())
 
-    def saveFile(name, index, data):
-        fn = name + '.json'
-        with gzip.open(os.path.join(outdir, fn + '.gz'), 'wb') as outfile:
+    def saveFile(name, index, data, prefix=''):
+        fn = prefix + name + '.json.gz'
+        with gzip.open(os.path.join(outdir, fn), 'wb') as outfile:
             outfile.write(json.dumps(data))
         index[name] = fn
 
@@ -63,7 +64,7 @@ def processJob(dims, jobfile, sessionsdir, outdir):
     for i, dim in enumerate(dimsinfo):
         field = dims[i]['field_name']
         dims[i]['allowed_values'] = list(dimvalues[i])
-        saveFile(field, index['dimensions'], dim)
+        saveFile(field, index['dimensions'], dim, prefix='dim_')
 
     sessions = {}
     dims[0]['allowed_values'] = ['saved-session'];
@@ -83,7 +84,8 @@ def processJob(dims, jobfile, sessionsdir, outdir):
                              if k in allowed_infos}
                 sessions.setdefault(
                     dims[key[0]]['field_name'], {})[key[1]] = aggregate
-    saveFile('sessions', index, sessions)
+    for fieldname, sessionsvalue in sessions.iteritems():
+        saveFile(fieldname, index['sessions'], sessionsvalue, prefix='ses_')
 
     with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
         outfile.write(json.dumps(index))
