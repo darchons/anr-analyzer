@@ -36,6 +36,7 @@ def processJob(dims, jobfile, outdir):
     slugs = {}
     dimsinfo = [{} for i in range(len(dims))]
     dimvalues = [set() for i in range(len(dims))]
+    allowed_infos = {}
     for line in jobfile:
         anr = json.loads(line.partition('\t')[2])
         slug = anr['slugs'][0]
@@ -47,6 +48,8 @@ def processJob(dims, jobfile, outdir):
             for key, value in infocounts.iteritems():
                 dimsinfo[i].setdefault(slug, {})[key] = value
                 dimvalues[i].add(key)
+                for k, v in value.iteritems:
+                    allowed_infos.setdefault(k, set()).update(v.iterkeys())
 
     def saveFile(name, index, data):
         fn = name + '.json'
@@ -63,16 +66,24 @@ def processJob(dims, jobfile, outdir):
         saveFile(field, index['dimensions'], dim)
 
     sessions = {}
-    dims[0]['allowed_values'] = 'saved-session';
+    dims[0]['allowed_values'] = ['saved-session'];
     workdir = tempfile.mkdtemp()
     with tempfile.NamedTemporaryFile('r', suffix='.txt') as outfile:
         runJob("mapreduce-sessions.py", dims, workdir, outfile)
         with open(outfile.name, 'r') as sessionsfile:
+            def stripval(k, v):
+                ret = {x: y for x, y in v.iteritems()
+                        if x in allowed_infos[k]}
+                ret[""] = sum(v.itervalues() - sum(ret.itervalues())
+                return ret
             for line in sessionsfile:
                 parts = line.partition('\t')
                 key = json.loads(parts[0])
-                aggregate = json.loads(parts[2])
-                sessions[dims[key[0]]['field_name']][key[1]] = aggregate
+                aggregate = {k: stripval(k, v) for k, v
+                             in json.loads(parts[2]).iteritems()
+                             if k in allowed_infos}
+                sessions.setdefault(
+                    dims[key[0]]['field_name'], {})[key[1]] = aggregate
     saveFile('sessions', index, sessions)
 
     with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
