@@ -1,4 +1,5 @@
 import json, re
+from collections import OrderedDict
 from anr import ANRReport
 
 re_subname = re.compile(r'\$\w+')
@@ -23,12 +24,15 @@ def map(slug, dims, value, context):
         'android.',
         'java.lang.',
     ]
-    stack = [processFrame(frame) for frame in stack
-             if any(frame.startswith(prefix) for prefix in ignoreList)]
+    popList = ignoreList.pop
+    def getStack():
+        return list(OrderedDict.fromkeys(
+            [processFrame(frame) for frame in stack
+             if any(frame.startswith(prefix) for prefix in ignoreList)]))
+    stack = getStack()
     while ignoreList and len(stack) < 10:
-        ignoreList.pop()
-        stack = [processFrame(frame) for frame in stack
-                 if any(frame.startswith(prefix) for prefix in ignoreList)]
+        popList()
+        stack = getStack()
     context.write(tuple(stack), (slug, dims, value))
 
 def reduce(key, values, context):
