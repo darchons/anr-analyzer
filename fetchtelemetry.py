@@ -2,7 +2,7 @@
 
 import gzip, os, json, subprocess, sys, tempfile
 
-def runJob(job, dims, workdir, outfile):
+def runJob(job, dims, workdir, outfile, local=False):
     with tempfile.NamedTemporaryFile('w', suffix='.json', dir=workdir) as filterfile:
         filterfile.write(json.dumps({
             'version': 1,
@@ -15,10 +15,12 @@ def runJob(job, dims, workdir, outfile):
                 '--input-filter', filterfile.name,
                 '--num-mappers', '16',
                 '--num-reducers', '4',
-                '--data-dir', workdir,
+                '--data-dir', local ? os.path.join(workdir, 'cache') : workdir,
                 '--work-dir', workdir,
                 '--output', outfile.name,
                 '--bucket', 'telemetry-published-v1']
+        if local:
+            args.append('--local-only')
 
         env = os.environ
         print 'Calling %s' % (str(' '.join(args)))
@@ -27,11 +29,13 @@ def runJob(job, dims, workdir, outfile):
             print 'Error %d' % (ret)
             sys.exit(ret)
 
-def processJob(dims, jobfile, sessionsdir, outdir):
-    index = {
-        'dimensions': {},
-        'sessions': {},
-    }
+def saveFile(outdir, name, index, data, prefix=''):
+    fn = prefix + name + '.json.gz'
+    with gzip.open(os.path.join(outdir, fn), 'wb') as outfile:
+        outfile.write(json.dumps(data))
+    index[name] = fn
+
+def processDims(index, dims, jobfile, outdir):
     mainthreads = {}
     backgroundthreads = {}
     slugs = {}
@@ -42,7 +46,7 @@ def processJob(dims, jobfile, sessionsdir, outdir):
         anr = json.loads(line.partition('\t')[2])
         slug = anr['slugs'][0]
         slugs[slug] = anr['slugs']
-        mainthreads[slug] = anr['threads'][0]
+        mainthreads[slug] = anr['threads'][:1]
         backgroundthreads[slug] = anr['threads'][1:]
         info = anr['info']
         for i, infocounts in enumerate(info):
@@ -52,43 +56,32 @@ def processJob(dims, jobfile, sessionsdir, outdir):
                 for k, v in value.iteritems():
                     allowed_infos.setdefault(k, set()).update(v.iterkeys())
 
-    def saveFile(name, index, data, prefix=''):
-        fn = prefix + name + '.json.gz'
-        with gzip.open(os.path.join(outdir, fn), 'wb') as outfile:
-            outfile.write(json.dumps(data))
-        index[name] = fn
-
-    saveFile('slugs', index, slugs)
-    saveFile('main_thread', index, mainthreads)
-    saveFile('background_threads', index, backgroundthreads)
+    saveFile(outdir, 'slugs', index, slugs)
+    saveFile(outdir, 'main_thread', index, mainthreads)
+    saveFile(outdir, 'background_threads', index, backgroundthreads)
     for i, dim in enumerate(dimsinfo):
         field = dims[i]['field_name']
         dims[i]['allowed_values'] = list(dimvalues[i])
-        saveFile(field, index['dimensions'], dim, prefix='dim_')
+        saveFile(outdir, field, index['dimensions'], dim, prefix='dim_')
 
+def processSessions(index, dims, sessionsfile, outdir):
     sessions = {}
-    dims[0]['allowed_values'] = ['saved-session'];
-    with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
-        runJob("mapreduce-sessions.py", dims, sessionsdir, outfile)
-        with open(outfile.name, 'r') as sessionsfile:
-            def stripval(k, v):
-                ret = {x: y for x, y in v.iteritems()
-                        if x in allowed_infos[k]}
-                ret[""] = sum(v.itervalues()) - sum(ret.itervalues())
-                return ret
-            for line in sessionsfile:
-                parts = line.partition('\t')
-                key = json.loads(parts[0])
-                aggregate = {k: stripval(k, v) for k, v
-                             in json.loads(parts[2]).iteritems()
-                             if k in allowed_infos}
-                sessions.setdefault(
-                    dims[key[0]]['field_name'], {})[key[1]] = aggregate
+    def stripval(k, v):
+        ret = {x: y for x, y in v.iteritems()
+                if x in allowed_infos[k]}
+        ret[""] = sum(v.itervalues()) - sum(ret.itervalues())
+        return ret
+    for line in sessionsfile:
+        parts = line.partition('\t')
+        key = json.loads(parts[0])
+        aggregate = {k: stripval(k, v) for k, v
+                     in json.loads(parts[2]).iteritems()
+                     if k in allowed_infos}
+        sessions.setdefault(dims[key[0]]['field_name'],
+            {'uptime': {}})['uptime'][key[1]] = aggregate
     for fieldname, sessionsvalue in sessions.iteritems():
-        saveFile(fieldname, index['sessions'], sessionsvalue, prefix='ses_')
-
-    with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
-        outfile.write(json.dumps(index))
+        saveFile(outdir, fieldname,
+            index['sessions'], sessionsvalue, prefix='ses_')
 
 if __name__ == '__main__':
 
@@ -147,10 +140,24 @@ if __name__ == '__main__':
         }
     }]
 
+    index = {
+        'dimensions': {},
+        'sessions': {},
+    }
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
-        runJob("mapreduce.py", dims, workdir, outfile)
+        runJob("mapreduce-dims.py", dims, workdir, outfile)
         with open(outfile.name, 'r') as jobfile:
-            processJob(dims, jobfile, sessionsdir, outdir)
+            processDims(index, dims, jobfile, outdir)
+
+    with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
+        local = 'saved-session' in dims[0]['allowed_values']
+        dims[0]['allowed_values'] = ['saved-session'];
+        runJob("mapreduce-sessions.py", dims, sessionsdir, outfile, localonly=local)
+        with open(outfile.name, 'r') as sessionsfile:
+            processSessions(index, dims, sessionsfile, outdir)
+
+    with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
+        outfile.write(json.dumps(index))
 
     print 'Completed'
 

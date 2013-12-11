@@ -42,7 +42,7 @@ def reduce(key, values, context):
     anrs = []
     slugs = []
     for slug, dims, value in values:
-	anr = ANRReport(value)
+        anr = ANRReport(value)
         anrs.append(anr)
         if 'info' not in anr.rawData:
             continue
