@@ -39,8 +39,8 @@ def processDims(index, dims, jobfile, outdir):
     mainthreads = {}
     backgroundthreads = {}
     slugs = {}
-    dimsinfo = [{} for i in range(len(dims))]
-    dimvalues = [set() for i in range(len(dims))]
+    dimsinfo = {}
+    dimvalues = {}
     allowed_infos = {}
     for line in jobfile:
         anr = json.loads(line.partition('\t')[2])
@@ -49,19 +49,20 @@ def processDims(index, dims, jobfile, outdir):
         mainthreads[slug] = anr['threads'][:1]
         backgroundthreads[slug] = anr['threads'][1:]
         info = anr['info']
-        for i, infocounts in enumerate(info):
+        for dimname, infocounts in info.iteritems():
             for key, value in infocounts.iteritems():
-                dimsinfo[i].setdefault(slug, {})[key] = value
-                dimvalues[i].add(key)
+                dimsinfo.setdefault(dimname, {})
+                        .setdefault(slug, {})[key] = value
+                dimvalues.setdefault(dimname, set()).add(key)
                 for k, v in value.iteritems():
                     allowed_infos.setdefault(k, set()).update(v.iterkeys())
 
     saveFile(outdir, 'slugs', index, slugs)
     saveFile(outdir, 'main_thread', index, mainthreads)
     saveFile(outdir, 'background_threads', index, backgroundthreads)
-    for i, dim in enumerate(dimsinfo):
-        field = dims[i]['field_name']
-        dims[i]['allowed_values'] = list(dimvalues[i])
+    for field, dim in dimsinfo.iteritems():
+        next(d for d in dims if d['field_name'] == field)[
+            'allowed_values'] = list(dimvalues[field])
         saveFile(outdir, field, index['dimensions'], dim, prefix='dim_')
 
 def processSessions(index, dims, sessionsfile, outdir):

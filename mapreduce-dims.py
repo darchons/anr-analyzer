@@ -1,6 +1,7 @@
 import json, re
 from collections import OrderedDict
 from anr import ANRReport
+import mapreduce_common
 
 re_subname = re.compile(r'\$\w+')
 
@@ -38,7 +39,7 @@ def map(slug, dims, value, context):
 def reduce(key, values, context):
     if not values:
         return
-    info = [{} for i in range(len(values[0][1]))]
+    info = {k: {} for k in mapreduce_common.allowed_dimensions}
     anrs = []
     slugs = []
     for slug, dims, value in values:
@@ -46,9 +47,13 @@ def reduce(key, values, context):
         anrs.append(anr)
         if 'info' not in anr.rawData:
             continue
+        raw_info = mapreduce_common.filterInfo(anr.rawData['info'])
         for i, dim in enumerate(dims):
-            diminfo = info[i].setdefault(dim, {})
-            for infokey, infovalue in anr.rawData['info'].iteritems():
+            dimname = mapreduce_common.dimensions[i]
+            if dimname not in mapreduce_common.allowed_dimensions:
+                continue
+            diminfo = info[dimname].setdefault(dim, {})
+            for infokey, infovalue in raw_info.iteritems():
                 counts = diminfo.setdefault(infokey, {})
                 counts[infovalue] = counts.get(infovalue, 0) + 1
         slugs.append(slug)
