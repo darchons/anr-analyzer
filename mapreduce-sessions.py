@@ -8,7 +8,7 @@ def map(slug, dims, value, context):
         'uptime' not in ping['simpleMeasurements']):
         return
     info = mapreduce_common.filterInfo(ping['info'])
-    uptime = float(ping['simpleMeasurements']['uptime']) / 60000
+    uptime = float(ping['simpleMeasurements']['uptime'])
     if uptime <= 0.0:
         return
     for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
