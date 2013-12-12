@@ -34,15 +34,28 @@ allowed_dimensions = [
 ]
 
 def adjustInfo(info):
-    if 'memsize' in info:
+    if 'memsize' in info and int(info['memsize']) > 0:
         info['memsize'] = (int(info['memsize']) + 64) & (~127)
-    if 'version' in info:
+    else:
+        info['memsize'] = 0
+
+    if 'version' in info and 'OS' in info:
         info['os'] = (str(info['OS']) + ' ' +
             '.'.join(str(info['version']).split('-')[0].split('.')[:2]))
+    elif 'OS' in info:
+        info['os'] = str(info['OS'])
+    else:
+        info['os'] = 'unknown'
+
+    if 'cpucount' not in info or int(info['cpucount']) <= 0:
+        info['cpucount'] = -1
+
     if 'OS' in info:
         info['platform'] = info['OS']
+
     if 'adapterRAM' in info:
         info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
+
     if 'arch' in info:
         arch = info['arch']
         info['arch'] = ('armv7'

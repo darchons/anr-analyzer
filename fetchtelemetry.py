@@ -61,7 +61,7 @@ def processDims(index, dims, allowed_infos, jobfile, outdir):
     saveFile(outdir, 'background_threads', index, backgroundthreads)
     dummy_dict = {}
     for field, dim in dimsinfo.iteritems():
-        next(d for d in dims if d['field_name'] == field, dummy_dict)[
+        next((d for d in dims if d['field_name'] == field), dummy_dict)[
             'allowed_values'] = list(dimvalues[field])
         saveFile(outdir, field, index['dimensions'], dim, prefix='dim_')
 
