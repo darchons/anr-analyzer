@@ -18,6 +18,7 @@ THREAD_BLACKLIST = [
     re.compile(r'android\.'),
     re.compile(r'apache\.'),
     re.compile(r'^AsyncTask'),
+    re.compile(r'^ModernAsyncTask'),
     re.compile(r'^Binder'),
     re.compile(r'^Thread-'),
     re.compile(r'^pool-'),
