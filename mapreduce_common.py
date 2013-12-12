@@ -1,5 +1,6 @@
 
 allowed_infos = [
+    'appBuildID',
     'appVersion',
     'appName',
     'appUpdateChannel',
@@ -27,17 +28,22 @@ allowed_dimensions = [
     'appName',
     'appUpdateChannel',
     'appVersion',
-    'appBuildID',
     'submission_date',
 ]
 
 def adjustInfo(info):
     if 'memsize' in info:
-        info['memsize'] = (info['memsize'] + 64) & (~127)
+        info['memsize'] = (int(info['memsize']) + 64) & (~127)
     if 'version' in info:
-        info['version'] = info['version'].partition('-')[0]
+        info['version'] = str(info['version']).partition('-')[0]
     if 'adapterRAM' in info:
-        info['adapterRAM'] = (info['adapterRAM'] + 64) & (~127)
+        info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
+    if 'arch' in info:
+        arch = info['arch']
+        info['arch'] = ('armv7'
+            if ('v7' in arch or (arch == 'arm' and
+                                 info.get('hasARMv7', True)))
+            else 'armv6')
 
 def filterInfo(raw_info):
     ret = {k: v for k, v in raw_info.iteritems()

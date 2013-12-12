@@ -1,4 +1,5 @@
 import json
+import mapreduce_common
 
 def map(slug, dims, value, context):
     ping = json.loads(value)
@@ -6,7 +7,7 @@ def map(slug, dims, value, context):
         'simpleMeasurements' not in ping or
         'uptime' not in ping['simpleMeasurements']):
         return
-    info = ping['info']
+    info = mapreduce_common.filterInfo(ping['info'])
     uptime = ping['simpleMeasurements']['uptime']
     for i, dim in enumerate(dims):
         context.write((i, dim), (uptime, ping['info']))
