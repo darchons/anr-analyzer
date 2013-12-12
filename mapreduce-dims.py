@@ -21,18 +21,16 @@ def map(slug, dims, value, context):
         'com.android.internal.',
         'com.android.',
         'dalvik.',
-        'android.view.',
         'android.',
         'java.lang.',
     ]
-    popList = ignoreList.pop
     def getStack():
         return list(OrderedDict.fromkeys(
             [processFrame(frame) for frame in stack
              if not any(frame.startswith(prefix) for prefix in ignoreList)]))
     stack = getStack()
     while ignoreList and len(stack) < 10:
-        popList()
+        ignoreList.pop()
         stack = getStack()
     context.write(tuple(stack), (
         slug,
