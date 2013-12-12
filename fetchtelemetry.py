@@ -160,6 +160,9 @@ if __name__ == '__main__':
         with open(outfile.name, 'r') as sessionsfile:
             processSessions(index, dims, allowed_infos, sessionsfile, outdir)
 
+    runJob("mapreduce-summary.py", dims, sessionsdir,
+           os.path.join(outdir, 'summary.txt'), local=True)
+
     with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
         outfile.write(json.dumps(index))
 
