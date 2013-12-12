@@ -24,15 +24,15 @@ def map(slug, dims, value, context):
         'android.',
         'java.lang.',
     ]
-    def getStack():
+    def getStack(stack):
         return list(OrderedDict.fromkeys(
             [processFrame(frame) for frame in stack
              if not any(frame.startswith(prefix) for prefix in ignoreList)]))
-    stack = getStack()
-    while ignoreList and len(stack) < 10:
+    key_stack = getStack(stack)
+    while ignoreList and len(key_stack) < 10:
         ignoreList.pop()
-        stack = getStack()
-    context.write(tuple(stack), (
+        key_stack = getStack(stack)
+    context.write(tuple(key_stack), (
         slug,
         mapreduce_common.filterDimensions(
             dims, mapreduce_common.filterInfo(anr.rawData['info'])),
