@@ -35,7 +35,7 @@ def saveFile(outdir, name, index, data, prefix=''):
         outfile.write(json.dumps(data))
     index[name] = fn
 
-def processDims(index, dims, allowed_dims, allowed_infos, jobfile, outdir):
+def processDims(index, dims, allowed_infos, jobfile, outdir):
     mainthreads = {}
     backgroundthreads = {}
     slugs = {}
@@ -49,7 +49,6 @@ def processDims(index, dims, allowed_dims, allowed_infos, jobfile, outdir):
         backgroundthreads[slug] = anr['threads'][1:]
         info = anr['info']
         for dimname, infocounts in info.iteritems():
-            allowed_dims.add(dimname)
             for key, value in infocounts.iteritems():
                 dimsinfo.setdefault(
                     dimname, {}).setdefault(slug, {})[key] = value
@@ -60,28 +59,28 @@ def processDims(index, dims, allowed_dims, allowed_infos, jobfile, outdir):
     saveFile(outdir, 'slugs', index, slugs)
     saveFile(outdir, 'main_thread', index, mainthreads)
     saveFile(outdir, 'background_threads', index, backgroundthreads)
+    dummy_dict = {}
     for field, dim in dimsinfo.iteritems():
-        next(d for d in dims if d['field_name'] == field)[
+        next(d for d in dims if d['field_name'] == field, dummy_dict)[
             'allowed_values'] = list(dimvalues[field])
         saveFile(outdir, field, index['dimensions'], dim, prefix='dim_')
 
-def processSessions(index, dims, allowed_dims, allowed_infos, sessionsfile, outdir):
+def processSessions(index, dims, allowed_infos, sessionsfile, outdir):
     sessions = {}
     def stripval(k, v):
         ret = {x: y for x, y in v.iteritems()
-                if x in allowed_infos[k]}
-        ret[""] = sum(v.itervalues()) - sum(ret.itervalues())
+               if x in allowed_infos[k]}
+        rest = sum(v.itervalues()) - sum(ret.itervalues())
+        if rest:
+            ret[""] = rest
         return ret
     for line in sessionsfile:
         parts = line.partition('\t')
         key = json.loads(parts[0])
-        dimname = dims[key[0]]['field_name']
-        if dimname not in allowed_dims:
-            continue
-        aggregate = {k: stripval(k, v) for k, v
+        aggregate = {k: v for k, v
                      in json.loads(parts[2]).iteritems()
                      if k in allowed_infos}
-        sessions.setdefault(dimname,
+        sessions.setdefault(key[0],
             {'uptime': {}})['uptime'][key[1]] = aggregate
     for fieldname, sessionsvalue in sessions.iteritems():
         saveFile(outdir, fieldname,
@@ -149,18 +148,17 @@ if __name__ == '__main__':
         'sessions': {},
     }
     allowed_infos = {}
-    allowed_dims = set()
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
         runJob("mapreduce-dims.py", dims, workdir, outfile)
         with open(outfile.name, 'r') as jobfile:
-            processDims(index, dims, allowed_dims, allowed_infos, jobfile, outdir)
+            processDims(index, dims, allowed_infos, jobfile, outdir)
 
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
         local = 'saved-session' in dims[0]['allowed_values']
         dims[0]['allowed_values'] = ['saved-session'];
         runJob("mapreduce-sessions.py", dims, sessionsdir, outfile, local=local)
         with open(outfile.name, 'r') as sessionsfile:
-            processSessions(index, dims, allowed_dims, allowed_infos, sessionsfile, outdir)
+            processSessions(index, dims, allowed_infos, sessionsfile, outdir)
 
     with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
         outfile.write(json.dumps(index))

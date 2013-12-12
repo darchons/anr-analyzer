@@ -1,16 +1,16 @@
 
 allowed_infos = [
-    'appBuildID',
-    'appVersion',
     'appName',
+    'appVersion',
     'appUpdateChannel',
+    'appBuildID',
     'locale',
     'device',
-    'arch',
     'cpucount',
     'memsize',
-    'OS',
-    'version',
+    'os',
+    'arch',
+    'platform',
     'adapterVendorID',
     'adapterRAM',
 ]
@@ -25,17 +25,22 @@ dimensions = [
 ]
 
 allowed_dimensions = [
-    'appName',
-    'appUpdateChannel',
-    'appVersion',
     'submission_date',
+    'appName',
+    'appVersion',
+    'os',
+    'cpucount',
+    'memsize',
 ]
 
 def adjustInfo(info):
     if 'memsize' in info:
         info['memsize'] = (int(info['memsize']) + 64) & (~127)
     if 'version' in info:
-        info['version'] = str(info['version']).partition('-')[0]
+        info['os'] = (str(info['OS']) + ' ' +
+            '.'.join(str(info['version']).split('-')[0].split('.')[:2]))
+    if 'OS' in info:
+        info['platform'] = info['OS']
     if 'adapterRAM' in info:
         info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
     if 'arch' in info:
@@ -46,11 +51,11 @@ def adjustInfo(info):
             else 'armv6')
 
 def filterInfo(raw_info):
-    ret = {k: v for k, v in raw_info.iteritems()
-           if k in allowed_infos}
-    adjustInfo(ret)
-    return ret
+    adjustInfo(raw_info)
+    return {k: v for k, v in raw_info.iteritems()
+            if k in allowed_infos}
 
-def filterDimensions(raw_dims):
-    return [v for i, v in enumerate(raw_dims)
-            if dimensions[i] in allowed_dimensions]
+def filterDimensions(raw_dims, raw_info):
+    return {dim: (raw_dims[dimensions.index(dim)]
+                  if dim not in raw_info else raw_info[dim])
+            for dim in allowed_dimensions}

@@ -9,8 +9,8 @@ def map(slug, dims, value, context):
         return
     info = mapreduce_common.filterInfo(ping['info'])
     uptime = ping['simpleMeasurements']['uptime']
-    for i, dim in enumerate(dims):
-        context.write((i, dim), (uptime, ping['info']))
+    for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
+        context.write((name, dim), (uptime, info))
 
 def reduce(key, values, context):
     if not values:
@@ -20,4 +20,4 @@ def reduce(key, values, context):
         for k, v in value.iteritems():
             bucket = aggregate.setdefault(k, {})
             bucket[v] = bucket.get(v, 0) + uptime
-    context.write(json.dumps(list(key)), json.dumps(aggregate))
+    context.write(json.dumps(key), json.dumps(aggregate))

@@ -29,17 +29,21 @@ def map(slug, dims, value, context):
     def getStack():
         return list(OrderedDict.fromkeys(
             [processFrame(frame) for frame in stack
-             if any(frame.startswith(prefix) for prefix in ignoreList)]))
+             if not any(frame.startswith(prefix) for prefix in ignoreList)]))
     stack = getStack()
     while ignoreList and len(stack) < 10:
         popList()
         stack = getStack()
-    context.write(tuple(stack), (slug, dims, value))
+    context.write(tuple(stack), (
+        slug,
+        mapreduce_common.filterDimensions(
+            dims, mapreduce_common.filterInfo(anr.rawData['info'])),
+        value))
 
 def reduce(key, values, context):
     if not values:
         return
-    info = {k: {} for k in mapreduce_common.allowed_dimensions}
+    info = {}
     anrs = []
     slugs = []
     for slug, dims, value in values:
@@ -48,11 +52,8 @@ def reduce(key, values, context):
         if 'info' not in anr.rawData:
             continue
         raw_info = mapreduce_common.filterInfo(anr.rawData['info'])
-        for i, dim in enumerate(dims):
-            dimname = mapreduce_common.dimensions[i]
-            if dimname not in mapreduce_common.allowed_dimensions:
-                continue
-            diminfo = info[dimname].setdefault(dim, {})
+        for dimname, dim in dims.iteritems():
+            diminfo = info.setdefault(dimname, {}).setdefault(dim, {})
             for infokey, infovalue in raw_info.iteritems():
                 counts = diminfo.setdefault(infokey, {})
                 counts[infovalue] = counts.get(infovalue, 0) + 1
