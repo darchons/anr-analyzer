@@ -3,10 +3,10 @@ from collections import OrderedDict
 from anr import ANRReport
 import mapreduce_common
 
-re_subname = re.compile(r'\$\w+')
+re_subname = re.compile(r'\$\w*\d+')
 
 def processFrame(frame):
-    return re_subname.sub('', frame)
+    return re_subname.sub('$', frame)
 
 def map(slug, dims, value, context):
     anr = ANRReport(value)
