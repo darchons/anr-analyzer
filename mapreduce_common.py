@@ -37,7 +37,7 @@ def adjustInfo(info):
     if 'memsize' in info and int(info['memsize']) > 0:
         info['memsize'] = (int(info['memsize']) + 64) & (~127)
     else:
-        info['memsize'] = 0
+        info['memsize'] = None
 
     if 'version' in info and 'OS' in info:
         info['os'] = (str(info['OS']) + ' ' +
@@ -45,16 +45,20 @@ def adjustInfo(info):
     elif 'OS' in info:
         info['os'] = str(info['OS'])
     else:
-        info['os'] = 'unknown'
+        info['os'] = None
 
     if 'cpucount' not in info or int(info['cpucount']) <= 0:
-        info['cpucount'] = -1
+        info['cpucount'] = None
 
     if 'OS' in info:
         info['platform'] = info['OS']
+    else:
+        info['platform'] = None
 
     if 'adapterRAM' in info:
         info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
+    else:
+        info['adapterRAM'] = None
 
     if 'arch' in info:
         arch = info['arch']
@@ -65,8 +69,12 @@ def adjustInfo(info):
 
 def filterInfo(raw_info):
     adjustInfo(raw_info)
-    return {k: v for k, v in raw_info.iteritems()
-            if k in allowed_infos}
+    return {k: (raw_info[k]
+                if (k in raw_info and raw_info[k] is not None)
+                else 'unknown')
+            for k in allowed_infos}
+    # return {k: v for k, v in raw_info.iteritems()
+    #         if k in allowed_infos}
 
 def filterDimensions(raw_dims, raw_info):
     return {dim: (raw_dims[dimensions.index(dim)]
