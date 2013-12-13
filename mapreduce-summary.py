@@ -7,11 +7,11 @@ def map(slug, dims, value, context):
     if ('info' not in ping or
         'simpleMeasurements' not in ping or
         'uptime' not in ping['simpleMeasurements']):
-        context.write("all", 1)
+        context.write("corrupt", 1)
         return
     info = mapreduce_common.filterInfo(ping['info'])
     uptime = ping['simpleMeasurements']['uptime']
-    if uptime <= 0:
+    if uptime < 0:
         return
     for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
         context.write((name, dim), uptime)

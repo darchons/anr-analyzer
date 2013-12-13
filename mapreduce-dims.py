@@ -39,7 +39,7 @@ def map(slug, dims, value, context):
         value))
 
 def reduce(key, values, context):
-    if not values:
+    if not values or len(values) < 5:
         return
     info = {}
     anrs = []
