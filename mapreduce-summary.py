@@ -2,11 +2,12 @@ import json
 import mapreduce_common
 
 def map(slug, dims, value, context):
-    context.write(None, 1)
+    context.write("all", 1)
     ping = json.loads(value)
     if ('info' not in ping or
         'simpleMeasurements' not in ping or
         'uptime' not in ping['simpleMeasurements']):
+        context.write("all", 1)
         return
     info = mapreduce_common.filterInfo(ping['info'])
     uptime = float(ping['simpleMeasurements']['uptime'])
@@ -18,4 +19,8 @@ def map(slug, dims, value, context):
 def reduce(key, values, context):
     if not values:
         return
-    context.write(json.dumps(key), json.dumps((len(values), sum(values))))
+    upper = mapreduce_common.ntile(values, 5, upper=True)
+    lower = mapreduce_common.ntile(values, 5, upper=False)
+    limited = [x for x in values if x <= upper and x >= lower]
+    context.write(json.dumps(key), json.dumps(
+        (len(limited), sum(limited), min(limited), max(limited))))

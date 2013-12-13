@@ -72,3 +72,17 @@ def filterDimensions(raw_dims, raw_info):
     return {dim: (raw_dims[dimensions.index(dim)]
                   if dim not in raw_info else raw_info[dim])
             for dim in allowed_dimensions}
+
+def ntile(values, n, upper=True, key=lambda x:x):
+    maxs = [key(x) for x in values[: len(values) / n]]
+    maxs.sort()
+    if not len(maxs):
+        return max(values) if upper else min(values)
+    for v in (key(x) for x in values[len(values) / n:]):
+        if upper and v > maxs[0]:
+            maxs[0] = v
+            maxs.sort()
+        elif not upper and v < maxs[-1]:
+            maxs[-1] = v
+            maxs.sort()
+    return maxs[0] if upper else maxs[-1]

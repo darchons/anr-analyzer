@@ -8,8 +8,8 @@ def map(slug, dims, value, context):
         'uptime' not in ping['simpleMeasurements']):
         return
     info = mapreduce_common.filterInfo(ping['info'])
-    uptime = float(ping['simpleMeasurements']['uptime'])
-    if uptime <= 0.0:
+    uptime = ping['simpleMeasurements']['uptime']
+    if uptime <= 0:
         return
     for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
         context.write((name, dim), (uptime, info))
@@ -18,8 +18,12 @@ def reduce(key, values, context):
     if not values:
         return
     aggregate = {}
+    upper = mapreduce_common.ntile(values, 5, upper=True, key=lambda x:x[0])
+    lower = mapreduce_common.ntile(values, 5, upper=False, key=lambda x:x[0])
     for uptime, value in values:
+        if uptime > upper or uptime < lower:
+            continue
         for k, v in value.iteritems():
             bucket = aggregate.setdefault(k, {})
-            bucket[v] = bucket.get(v, 0.0) + uptime
+            bucket[v] = bucket.get(v, 0) + uptime
     context.write(json.dumps(key), json.dumps(aggregate))
