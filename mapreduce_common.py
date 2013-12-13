@@ -73,7 +73,7 @@ def filterDimensions(raw_dims, raw_info):
                   if dim not in raw_info else raw_info[dim])
             for dim in allowed_dimensions}
 
-def ntile(values, n, upper=True, key=lambda x:x):
+def quantile(values, n, upper=True, key=lambda x:x):
     maxs = [key(x) for x in values[: len(values) / n]]
     maxs.sort()
     if not len(maxs):

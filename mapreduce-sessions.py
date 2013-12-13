@@ -18,12 +18,12 @@ def reduce(key, values, context):
     if not values:
         return
     aggregate = {}
-    upper = mapreduce_common.ntile(values, 5, upper=True, key=lambda x:x[0])
-    lower = mapreduce_common.ntile(values, 5, upper=False, key=lambda x:x[0])
+    upper = mapreduce_common.quantile(values, 10, upper=True, key=lambda x:x[0])
+    lower = mapreduce_common.quantile(values, 10, upper=False, key=lambda x:x[0])
     for uptime, value in values:
         if uptime > upper or uptime < lower:
             continue
         for k, v in value.iteritems():
             bucket = aggregate.setdefault(k, {})
-            bucket[v] = bucket.get(v, 0) + uptime
+            bucket[v] = bucket.get(v, 0) + uptime * 10 / 8
     context.write(json.dumps(key), json.dumps(aggregate))
