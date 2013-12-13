@@ -10,6 +10,7 @@ def map(slug, dims, value, context):
         context.write("corrupt", 1)
         return
     info = mapreduce_common.filterInfo(ping['info'])
+    mapreduce_common.addUptime(info, ping)
     uptime = ping['simpleMeasurements']['uptime']
     if uptime < 0:
         return

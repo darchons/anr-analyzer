@@ -13,6 +13,7 @@ allowed_infos = [
     'platform',
     'adapterVendorID',
     'adapterRAM',
+    'uptime',
 ]
 
 dimensions = [
@@ -32,6 +33,28 @@ allowed_dimensions = [
     'cpucount',
     'memsize',
 ]
+
+def addUptime(info, ping):
+    uptime = ping['simpleMeasurements']['uptime']
+    if uptime >= 40320:
+        uptime = '>4w'
+    elif uptime >= 10080:
+        uptime = '1w-4w'
+    elif uptime >= 1440:
+        uptime = '1d-1w'
+    elif uptime >= 240:
+        uptime = '3h-1d'
+    elif uptime >= 30:
+        uptime = '30m-3h'
+    elif uptime >= 5:
+        uptime = '5m-30m'
+    elif uptime >= 1:
+        uptime = '1m-5m'
+    elif uptime >= 0:
+        uptime = '<1m'
+    else:
+        return
+    info['uptime'] = uptime
 
 def adjustInfo(info):
     if 'memsize' in info and int(info['memsize']) > 0:

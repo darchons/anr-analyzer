@@ -47,9 +47,8 @@ def reduce(key, values, context):
     for slug, dims, value in values:
         anr = ANRReport(value)
         anrs.append(anr)
-        if 'info' not in anr.rawData:
-            continue
         raw_info = mapreduce_common.filterInfo(anr.rawData['info'])
+        mapreduce_common.addUptime(raw_info, anr.rawData)
         for dimname, dim in dims.iteritems():
             diminfo = info.setdefault(dimname, {}).setdefault(dim, {})
             for infokey, infovalue in raw_info.iteritems():

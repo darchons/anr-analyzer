@@ -8,6 +8,7 @@ def map(slug, dims, value, context):
         'uptime' not in ping['simpleMeasurements']):
         return
     info = mapreduce_common.filterInfo(ping['info'])
+    mapreduce_common.addUptime(info, ping)
     uptime = ping['simpleMeasurements']['uptime']
     if uptime <= 0:
         return
