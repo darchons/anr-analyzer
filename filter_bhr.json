@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "dimensions": [
+    {
+      "field_name": "reason",
+      "allowed_values": ["saved-session"]
+    },
+    {
+      "field_name": "appName",
+      "allowed_values": "*"
+    },
+    {
+      "field_name": "appUpdateChannel",
+      "allowed_values": "*"
+    },
+    {
+      "field_name": "appVersion",
+      "allowed_values": ["28.0a1", "28.0a2", "29.0a1"]
+    },
+    {
+      "field_name": "appBuildID",
+      "allowed_values": "*"
+    },
+    {
+      "field_name": "submission_date",
+      "allowed_values": {
+        "min": "20131206",
+        "max": "20131212"
+      }
+    }
+  ]
+}
