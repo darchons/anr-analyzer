@@ -58,10 +58,10 @@ def adjustInfo(info):
 
     if 'arch' in info:
         arch = info['arch']
-        info['arch'] = ('armv7'
-            if ('v7' in arch or (arch == 'arm' and
-                                 info.get('hasARMv7', True)))
-            else 'armv6')
+        if 'arm' in arch:
+            info['arch'] = ('armv7'
+                if ('v7' in arch or info.get('hasARMv7', 'v6' not in arch))
+                else 'armv6')
 
 def filterInfo(raw_info):
     adjustInfo(raw_info)
