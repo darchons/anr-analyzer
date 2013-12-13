@@ -17,7 +17,7 @@ def runJob(job, dims, workdir, outfile, local=False):
                 '--num-reducers', '4',
                 '--data-dir', os.path.join(workdir, 'cache') if local else workdir,
                 '--work-dir', workdir,
-                '--output', outfile.name,
+                '--output', outfile,
                 '--bucket', 'telemetry-published-v1']
         if local:
             args.append('--local-only')
@@ -149,14 +149,14 @@ if __name__ == '__main__':
     }
     allowed_infos = {}
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
-        runJob("mapreduce-dims.py", dims, workdir, outfile)
+        runJob("mapreduce-dims.py", dims, workdir, outfile.name)
         with open(outfile.name, 'r') as jobfile:
             processDims(index, dims, allowed_infos, jobfile, outdir)
 
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
         local = 'saved-session' in dims[0]['allowed_values']
         dims[0]['allowed_values'] = ['saved-session'];
-        runJob("mapreduce-sessions.py", dims, sessionsdir, outfile, local=local)
+        runJob("mapreduce-sessions.py", dims, sessionsdir, outfile.name, local=local)
         with open(outfile.name, 'r') as sessionsfile:
             processSessions(index, dims, allowed_infos, sessionsfile, outdir)
 
