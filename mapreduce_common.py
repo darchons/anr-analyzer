@@ -57,7 +57,9 @@ def addUptime(info, ping):
     info['uptime'] = uptime
 
 def adjustInfo(info):
-    if 'memsize' in info and int(info['memsize']) > 0:
+    if ('memsize' in info and
+        str(info['memsize']).isdigit() and
+        int(info['memsize']) > 0):
         info['memsize'] = (int(info['memsize']) + 64) & (~127)
     else:
         info['memsize'] = None
@@ -70,7 +72,11 @@ def adjustInfo(info):
     else:
         info['os'] = None
 
-    if 'cpucount' not in info or int(info['cpucount']) <= 0:
+    if ('cpucount' in info and
+        str(info['cpucount']).isdigit() and
+        int(info['cpucount']) > 0):
+        info['cpucount'] = int(info['cpucount'])
+    else:
         info['cpucount'] = None
 
     if 'OS' in info:
@@ -78,7 +84,9 @@ def adjustInfo(info):
     else:
         info['platform'] = None
 
-    if 'adapterRAM' in info:
+    if ('adapterRAM' in info and
+        str(info['adapterRAM']).isdigit() and
+        int(info['adapterRAM']) > 0):
         info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
     else:
         info['adapterRAM'] = None
