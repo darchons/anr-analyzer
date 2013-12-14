@@ -114,14 +114,15 @@ def filterDimensions(raw_dims, raw_info):
 
 def quantile(values, n, upper=True, key=lambda x:x):
     maxs = [key(x) for x in values[: len(values) / n]]
-    maxs.sort()
+    curidx, curmin = (min(enumerate(maxs), key=lambda x:x[1]) if upper else
+                      max(enumerate(maxs), key=lambda x:x[1]))
     if not len(maxs):
         return max(values) if upper else min(values)
     for v in (key(x) for x in values[len(values) / n:]):
-        if upper and v > maxs[0]:
-            maxs[0] = v
-            maxs.sort()
-        elif not upper and v < maxs[-1]:
-            maxs[-1] = v
-            maxs.sort()
-    return maxs[0] if upper else maxs[-1]
+        if ((upper and v <= curmin) or
+            (not upper and v >= curmin)):
+            continue
+        maxs[curidx] = v
+        curidx, curmin = (min(enumerate(maxs), key=lambda x:x[1]) if upper else
+                          max(enumerate(maxs), key=lambda x:x[1]))
+    return curmin
