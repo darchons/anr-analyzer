@@ -115,7 +115,7 @@ def filterDimensions(raw_dims, raw_info):
 
 def estQuantile(values, n, key=lambda x:x):
     histograms = {}
-    offset = key(min(values, key=key)) + 1
+    offset = 1 - key(min(values, key=key))
     for x in (key(v) for v in values):
         k = round(math.log(x + offset), 2)
         histograms[k] = histograms.get(k, 0) + 1
