@@ -1,3 +1,4 @@
+import math
 
 allowed_infos = [
     'appName',
@@ -111,6 +112,24 @@ def filterDimensions(raw_dims, raw_info):
     return {dim: (raw_dims[dimensions.index(dim)]
                   if dim not in raw_info else raw_info[dim])
             for dim in allowed_dimensions}
+
+def estQuantile(values, n, key=lambda x:x):
+    histograms = {}
+    offset = key(min(values, key=key)) + 1
+    for x in (key(v) for v in values):
+        k = round(math.log(x + offset), 2)
+        histograms[k] = histograms.get(k, 0) + 1
+    def _est(keys):
+        need = len(values) / n
+        for k in keys:
+            count = histograms[k]
+            if need <= count:
+                return math.exp(k + 0.01 * (1.0 -
+                    float(need) / float(count))) - offset
+            need -= count
+    keys = list(histograms.iterkeys())
+    keys.sort()
+    return (_est(keys), _est(reversed(keys)))
 
 def quantile(values, n, upper=True, key=lambda x:x):
     maxs = [key(x) for x in values[: len(values) / n]]

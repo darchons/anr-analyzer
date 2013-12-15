@@ -27,8 +27,9 @@ def reduce(raw_key, raw_values, cx):
 
     upper = lower = None
     if raw_key[0] is None:
-        upper = mapreduce_common.quantile(raw_values, 10, upper=True, key=lambda x:x[2])
-        lower = mapreduce_common.quantile(raw_values, 10, upper=False, key=lambda x:x[2])
+        lower, upper = mapreduce_common.estQuantile(raw_values, 10, key=lambda x:x[2])
+        lower = int(round(lower))
+        upper = int(round(upper))
 
     def merge(dest, src):
         # dest and src are dicts of buckets and counts
@@ -43,7 +44,8 @@ def reduce(raw_key, raw_values, cx):
                 return
             for k, v in info.iteritems():
                 info_bucket = dim.setdefault(k, {})
-                info_bucket[v] = info_bucket.get(v, 0) + counts
+                info_bucket[v] = info_bucket.get(v, 0) +
+                    (counts * 10 / 8 if upper or lower else counts)
             return
         for k, v in info.iteritems():
             info_bucket = dim.setdefault(k, {})

@@ -19,8 +19,9 @@ def reduce(key, values, context):
     if not values:
         return
     aggregate = {}
-    upper = mapreduce_common.quantile(values, 10, upper=True, key=lambda x:x[0])
-    lower = mapreduce_common.quantile(values, 10, upper=False, key=lambda x:x[0])
+    lower, upper = mapreduce_common.estQuantile(values, 10, key=lambda x:x[0])
+    lower = int(round(lower))
+    upper = int(round(upper))
     for uptime, value in values:
         if uptime > upper or uptime < lower:
             continue

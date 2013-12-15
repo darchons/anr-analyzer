@@ -20,8 +20,9 @@ def map(slug, dims, value, context):
 def reduce(key, values, context):
     if not values:
         return
-    upper = mapreduce_common.quantile(values, 10, upper=True)
-    lower = mapreduce_common.quantile(values, 10, upper=False)
+    lower, upper = mapreduce_common.estQuantile(values, 10)
+    lower = int(round(lower))
+    upper = int(round(upper))
     limited = [x for x in values if x <= upper and x >= lower]
     context.write(json.dumps(key), json.dumps(
         (len(limited), sum(limited), min(limited), max(limited))))
