@@ -44,8 +44,8 @@ def reduce(raw_key, raw_values, cx):
                 return
             for k, v in info.iteritems():
                 info_bucket = dim.setdefault(k, {})
-                info_bucket[v] = info_bucket.get(v, 0) +
-                    (counts * 10 / 8 if upper or lower else counts)
+                info_bucket[v] = (info_bucket.get(v, 0) +
+                    (counts * 10 / 8 if upper or lower else counts))
             return
         for k, v in info.iteritems():
             info_bucket = dim.setdefault(k, {})
