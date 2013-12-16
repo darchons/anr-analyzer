@@ -33,7 +33,7 @@ def map(slug, dims, value, context):
         ignoreList.pop()
         key_stack = getStack(stack)
     context.write(tuple(key_stack), (
-        slug,
+        dims + [slug],
         mapreduce_common.filterDimensions(
             dims, mapreduce_common.filterInfo(anr.rawData['info'])),
         value))
