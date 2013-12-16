@@ -20,7 +20,7 @@ def map(raw_key, raw_dims, raw_value, cx):
             for hang in thread['hangs']:
                 cx.write((name, tuple(hang['stack'])),
                          (dims, info, hang['histogram']))
-        cx.write((None,), (dims, info, uptime))
+            cx.write((None, name), (dims, info, uptime))
     except KeyError:
         pass
 
