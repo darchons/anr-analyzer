@@ -23,9 +23,8 @@ def reduce(key, values, context):
     lower = int(round(lower))
     upper = int(round(upper))
     for uptime, value in values:
-        if uptime > upper or uptime < lower:
-            continue
+        uptime = max(min(uptime, upper), lower)
         for k, v in value.iteritems():
             bucket = aggregate.setdefault(k, {})
-            bucket[v] = bucket.get(v, 0) + uptime * 10 / 8
+            bucket[v] = bucket.get(v, 0) + uptime
     context.write(json.dumps(key), json.dumps(aggregate))

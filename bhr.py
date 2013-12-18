@@ -41,13 +41,10 @@ def reduce(raw_key, raw_values, cx):
     def collect(dim, info, counts):
         if not isinstance(counts, dict):
             # int
-            if ((upper is not None and counts > upper) or
-                (lower is not None and counts < lower)):
-                return
+            counts = max(min(counts, upper), lower)
             for k, v in info.iteritems():
                 info_bucket = dim.setdefault(k, {})
-                info_bucket[v] = (info_bucket.get(v, 0) +
-                    (counts * 10 / 8 if upper or lower else counts))
+                info_bucket[v] = info_bucket.get(v, 0) + counts
             return
         for k, v in info.iteritems():
             info_bucket = dim.setdefault(k, {})
