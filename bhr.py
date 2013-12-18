@@ -49,7 +49,7 @@ def reduce(raw_key, raw_values, cx):
         for k, v in info.iteritems():
             info_bucket = dim.setdefault(k, {})
             if v not in info_bucket:
-                info_bucket[v] = counts['values']
+                info_bucket[v] = dict(counts['values'])
                 continue
             merge(info_bucket[v], counts['values'])
 
