@@ -43,7 +43,7 @@ def processDims(index, dims, allowed_infos, jobfile, outdir):
     dimvalues = {}
     for line in jobfile:
         anr = json.loads(line.partition('\t')[2])
-        slug = anr['slugs'][0]
+        slug = anr['slugs'][0][-1]
         slugs[slug] = anr['slugs']
         mainthreads[slug] = anr['threads'][:1]
         backgroundthreads[slug] = anr['threads'][1:]
