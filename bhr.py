@@ -21,6 +21,8 @@ def map(raw_key, raw_dims, raw_value, cx):
                 cx.write((name, tuple(hang['stack'])),
                          (dims, info, hang['histogram']))
             cx.write((None, name), (dims, info, uptime))
+        if j['threadHangStats']:
+            cx.write((None, None), (dims, info, uptime))
     except KeyError:
         pass
 

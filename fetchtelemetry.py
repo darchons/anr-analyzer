@@ -1,6 +1,6 @@
 #!/usr/bin/python2
 
-import gzip, os, json, subprocess, sys, tempfile
+import gzip, os, json, subprocess, sys, tempfile, uuid
 
 def runJob(job, dims, workdir, outfile, local=False):
     with tempfile.NamedTemporaryFile('w', suffix='.json', dir=workdir) as filterfile:
@@ -85,6 +85,50 @@ def processSessions(index, dims, allowed_infos, sessionsfile, outdir):
     for fieldname, sessionsvalue in sessions.iteritems():
         saveFile(outdir, fieldname,
             index['sessions'], sessionsvalue, prefix='ses_')
+
+def processBHR(index, jobfile, outdir):
+    mainthreads = {}
+    dimsinfo = {}
+    sessions = {}
+    def adjustCounts(dim_vals):
+        for info_keys in dim_vals.itervalues():
+            for info_vals in info_keys.itervalues():
+                for val, counts in info_vals.iteritems():
+                    info_vals[val] = sum(counts.itervalues())
+        return dim_vals
+    for line in jobfile:
+        parts = line.partition('\t')
+        stacks = json.loads(parts[0])
+        stats = json.loads(parts[2])
+        if stacks[0] is None:
+            # uptime measurements
+            tag = 'uptime'
+            if stacks[1] is not None:
+                tag += ':' + stacks[0]
+            for k, v in stats.iteritems():
+                sessions.setdefault(k, {})[tag] = v
+            continue
+        if stacks[1] is None:
+            # activity measurements
+            tag = 'activity:' + stacks[0]
+            for k, v in stats.iteritems():
+                sessions.setdefault(k, {})[tag] = v
+            continue
+        # hang measurements
+        stack = ['p:' + f.replace('::', '.') + ':'
+                 for f in reversed(stacks[1])] + ['p:' + stacks[0] + ':']
+        slug = str(uuid.uuid4())
+        mainthreads[slug] = [{'name': 'main', 'stack': stack}]
+        for k, v in stats.iteritems():
+            dimsinfo.setdefault(k, {})[slug] = v
+
+    saveFile(outdir, 'main_thread', index, mainthreads)
+    for field, dim in dimsinfo.iteritems():
+        saveFile(outdir, field, index['dimensions'], dim, prefix='dim_')
+    for fieldname, sessionsvalue in sessions.iteritems():
+        saveFile(outdir, fieldname, index['sessions'], sessionsvalue, prefix='ses_')
+    with open(os.path.join(outdir, 'index.json'), 'w') as outfile:
+        outfile.write(json.dumps(index))
 
 if __name__ == '__main__':
 
