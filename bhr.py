@@ -38,6 +38,8 @@ def reduce(raw_key, raw_values, cx):
     def merge(dest, src):
         # dest and src are dicts of buckets and counts
         for k, v in src.iteritems():
+            if not v:
+                continue
             dest[k] = dest.get(k, 0) + v
 
     def collect(dim, info, counts):
@@ -51,7 +53,7 @@ def reduce(raw_key, raw_values, cx):
         for k, v in info.iteritems():
             info_bucket = dim.setdefault(k, {})
             if v not in info_bucket:
-                info_bucket[v] = dict(counts['values'])
+                info_bucket[v] = {k: v for k, v in counts['values'].iteritems() if v}
                 continue
             merge(info_bucket[v], counts['values'])
 
