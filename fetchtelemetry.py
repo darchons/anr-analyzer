@@ -104,7 +104,7 @@ def processBHR(index, jobfile, outdir):
             # uptime measurements
             tag = 'uptime'
             if stacks[1] is not None:
-                tag += ':' + stacks[0]
+                tag += ':' + stacks[1]
             for k, v in stats.iteritems():
                 sessions.setdefault(k, {})[tag] = v
             continue
