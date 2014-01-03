@@ -21,6 +21,7 @@ if __name__ == '__main__':
     mindate = fromDate.strftime(DATE_FORMAT)
     maxdate = toDate.strftime(DATE_FORMAT)
     workdir = os.path.join('/mnt', 'tmp-bhr-%s-%s' % (mindate, maxdate))
+    localonly = os.path.exists(os.path.join(workdir, 'cache'))
     if not os.path.exists(workdir):
         os.makedirs(workdir)
 
@@ -31,6 +32,8 @@ if __name__ == '__main__':
     print 'Range: %s to %s' % (mindate, maxdate)
     print 'Work dir: %s' % workdir
     print 'Out dir: %s' % outdir
+    if localonly:
+        print 'Local only'
 
     dims = [{
         'field_name': 'reason',
@@ -60,7 +63,7 @@ if __name__ == '__main__':
         'sessions': {},
     }
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
-        runJob("bhr.py", dims, workdir, outfile.name)
+        runJob("bhr.py", dims, workdir, outfile.name, local=localonly)
         with open(outfile.name, 'r') as jobfile:
             processBHR(index, jobfile, outdir)
 

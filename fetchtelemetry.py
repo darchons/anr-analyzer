@@ -149,10 +149,12 @@ if __name__ == '__main__':
     mindate = fromDate.strftime(DATE_FORMAT)
     maxdate = toDate.strftime(DATE_FORMAT)
     workdir = os.path.join('/mnt', 'tmp-anr-%s-%s' % (mindate, maxdate))
+    worklocalonly = os.path.exists(os.path.join(workdir, 'cache'))
     if not os.path.exists(workdir):
         os.makedirs(workdir)
 
     sessionsdir = os.path.join('/mnt', 'tmp-sessions-%s-%s' % (mindate, maxdate))
+    sessionlocalonly = os.path.exists(os.path.join(sessionsdir, 'cache'))
     if not os.path.exists(sessionsdir):
         os.makedirs(sessionsdir)
 
@@ -163,6 +165,8 @@ if __name__ == '__main__':
     print 'Range: %s to %s' % (mindate, maxdate)
     print 'Work dir: %s' % workdir
     print 'Out dir: %s' % outdir
+    if worklocalonly:
+        print 'Local only'
 
     dims = [{
         'field_name': 'reason',
@@ -193,12 +197,12 @@ if __name__ == '__main__':
     }
     allowed_infos = {}
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=workdir) as outfile:
-        runJob("mapreduce-dims.py", dims, workdir, outfile.name)
+        runJob("mapreduce-dims.py", dims, workdir, outfile.name, local=worklocalonly)
         with open(outfile.name, 'r') as jobfile:
             processDims(index, dims, allowed_infos, jobfile, outdir)
 
     with tempfile.NamedTemporaryFile('r', suffix='.txt', dir=sessionsdir) as outfile:
-        local = 'saved-session' in dims[0]['allowed_values']
+        local = 'saved-session' in dims[0]['allowed_values'] or sessionlocalonly
         dims[0]['allowed_values'] = ['saved-session'];
         runJob("mapreduce-sessions.py", dims, sessionsdir, outfile.name, local=local)
         with open(outfile.name, 'r') as sessionsfile:
