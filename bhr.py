@@ -3,7 +3,7 @@ import json
 import mapreduce_common
 
 def map(raw_key, raw_dims, raw_value, cx):
-    if 'threadHangStats' not in raw_value:
+    if '"threadHangStats":' not in raw_value:
         return
     try:
         j = json.loads(raw_value)
@@ -14,17 +14,17 @@ def map(raw_key, raw_dims, raw_value, cx):
         uptime = j['simpleMeasurements']['uptime']
         if uptime < 0:
             return
-        for thread in j['threadHangStats']:
-            name = thread['name']
-            cx.write((name, None), (dims, info, thread['activity']))
-            for hang in thread['hangs']:
-                cx.write((name, tuple(hang['stack'])),
-                         (dims, info, hang['histogram']))
-            cx.write((None, name), (dims, info, uptime))
-        if j['threadHangStats']:
-            cx.write((None, None), (dims, info, uptime))
     except KeyError:
         pass
+    for thread in j['threadHangStats']:
+        name = thread['name']
+        cx.write((name, None), (dims, info, thread['activity']))
+        for hang in thread['hangs']:
+            cx.write((name, tuple(hang['stack'])),
+                     (dims, info, hang['histogram']))
+        cx.write((None, name), (dims, info, uptime))
+    if j['threadHangStats']:
+        cx.write((None, None), (dims, info, uptime))
 
 def reduce(raw_key, raw_values, cx):
     result = {}
