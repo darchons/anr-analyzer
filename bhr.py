@@ -7,13 +7,16 @@ def map(raw_key, raw_dims, raw_value, cx):
         return
     try:
         j = json.loads(raw_value)
+        raw_sm = j['simpleMeasurements']
+        uptime = raw_sm['uptime']
+        if uptime < 0:
+            return
+        if raw_sm.get('debuggerAttached', 0):
+            return
         raw_info = j['info']
         info = mapreduce_common.filterInfo(raw_info)
         mapreduce_common.addUptime(info, j)
         dims = mapreduce_common.filterDimensions(raw_dims, info)
-        uptime = j['simpleMeasurements']['uptime']
-        if uptime < 0:
-            return
     except KeyError:
         pass
     for thread in j['threadHangStats']:

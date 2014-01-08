@@ -9,11 +9,14 @@ def map(slug, dims, value, context):
         'uptime' not in ping['simpleMeasurements']):
         context.write("corrupt", 1)
         return
-    info = mapreduce_common.filterInfo(ping['info'])
-    mapreduce_common.addUptime(info, ping)
-    uptime = ping['simpleMeasurements']['uptime']
+    raw_sm = ping['simpleMeasurements']
+    uptime = raw_sm['uptime']
     if uptime < 0:
         return
+    if raw_sm.get('debuggerAttached', 0):
+        return
+    info = mapreduce_common.filterInfo(ping['info'])
+    mapreduce_common.addUptime(info, ping)
     for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
         context.write((name, dim), uptime)
 
