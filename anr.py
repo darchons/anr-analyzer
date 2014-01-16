@@ -22,6 +22,8 @@ THREAD_BLACKLIST = [
     re.compile(r'^Binder'),
     re.compile(r'^Thread-'),
     re.compile(r'^pool-'),
+    re.compile(r'^SyncAdapterThread-'),
+    re.compile(r'^hwuiTask'),
     re.compile(r'Daemon$'),
     re.compile(r'^WifiManager$'),
     re.compile(r'^AudioTrack$'),
@@ -30,6 +32,10 @@ THREAD_BLACKLIST = [
     re.compile(r'^JDWP$'),
     re.compile(r'^Signal Catcher$'),
     re.compile(r'^GC$')]
+
+THREAD_WHITELIST = [
+    re.compile(r'^Gecko'),
+    re.compile(r'^Compositor$')]
 
 class ANRReport:
 
@@ -388,7 +394,7 @@ class ANRReport:
                 continue
             if not t.name or not t.stack:
                 continue
-            if any(bl.search(t.name) for bl in THREAD_BLACKLIST):
+            if not any(bl.search(t.name) for bl in THREAD_WHITELIST):
                 continue
             yield t
 
