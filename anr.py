@@ -119,13 +119,13 @@ class ANRReport:
 
         def __init__(self, frame, isNative, libs=None):
             self.isNative = isNative
-            self.isProfiler = False
+            self.isProfiler = False = self.isPseudo = False
             self.javaMethod = self.javaFile = self.javaLine = None
             self.nativeId = self.nativeAddress = None
             self.nativeLib = self.nativeFunction = None
             try:
                 if not isinstance(frame, basestring):
-                    self.isNative = self.isProfiler = True
+                    self.isNative = self.isProfiler = self.isPseudo = True
                     self._initProfiler(frame, libs)
                 elif isNative:
                     self._initNative(frame)
@@ -156,6 +156,7 @@ class ANRReport:
             self.nativeLib = ''
             location = frame['location']
             if location[0].isdigit():
+                self.isPseudo = False
                 address = int(location, 0)
                 for lib in libs:
                     if lib['start'] > address or lib['end'] <= address:
