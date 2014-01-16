@@ -119,7 +119,7 @@ class ANRReport:
 
         def __init__(self, frame, isNative, libs=None):
             self.isNative = isNative
-            self.isProfiler = False = self.isPseudo = False
+            self.isProfiler = self.isPseudo = False
             self.javaMethod = self.javaFile = self.javaLine = None
             self.nativeId = self.nativeAddress = None
             self.nativeLib = self.nativeFunction = None
