@@ -41,7 +41,7 @@ def map(slug, dims, value, context):
         nativeMain = anr.getThread('GeckoMain (native)')
         if nativeMain is None:
             return (key_thread, key_stack)
-        nativeStack = [f for f in nativeMain.stack if f.isPseudo]
+        nativeStack = [str(f) for f in nativeMain.stack if f.isPseudo]
         if not nativeStack:
             return (key_thread, key_stack)
         return (nativeThread, nativeStack)
