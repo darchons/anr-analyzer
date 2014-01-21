@@ -22,6 +22,8 @@ THREAD_BLACKLIST = [
     re.compile(r'^Binder'),
     re.compile(r'^Thread-'),
     re.compile(r'^pool-'),
+    re.compile(r'^SyncAdapterThread-'),
+    re.compile(r'^hwuiTask'),
     re.compile(r'Daemon$'),
     re.compile(r'^WifiManager$'),
     re.compile(r'^AudioTrack$'),
@@ -30,6 +32,10 @@ THREAD_BLACKLIST = [
     re.compile(r'^JDWP$'),
     re.compile(r'^Signal Catcher$'),
     re.compile(r'^GC$')]
+
+THREAD_WHITELIST = [
+    re.compile(r'^Gecko'),
+    re.compile(r'^Compositor$')]
 
 class ANRReport:
 
@@ -113,13 +119,13 @@ class ANRReport:
 
         def __init__(self, frame, isNative, libs=None):
             self.isNative = isNative
-            self.isProfiler = False
+            self.isProfiler = self.isPseudo = False
             self.javaMethod = self.javaFile = self.javaLine = None
             self.nativeId = self.nativeAddress = None
             self.nativeLib = self.nativeFunction = None
             try:
                 if not isinstance(frame, basestring):
-                    self.isNative = self.isProfiler = True
+                    self.isNative = self.isProfiler = self.isPseudo = True
                     self._initProfiler(frame, libs)
                 elif isNative:
                     self._initNative(frame)
@@ -150,6 +156,7 @@ class ANRReport:
             self.nativeLib = ''
             location = frame['location']
             if location[0].isdigit():
+                self.isPseudo = False
                 address = int(location, 0)
                 for lib in libs:
                     if lib['start'] > address or lib['end'] <= address:
@@ -388,7 +395,7 @@ class ANRReport:
                 continue
             if not t.name or not t.stack:
                 continue
-            if any(bl.search(t.name) for bl in THREAD_BLACKLIST):
+            if not any(bl.search(t.name) for bl in THREAD_WHITELIST):
                 continue
             yield t
 

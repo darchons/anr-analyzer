@@ -17,6 +17,7 @@ def map(slug, dims, value, context):
     stack = mainThread.stack
     stack = [str(frame).split(':')[1] for frame in stack
              if not frame.isNative]
+
     # least stable to most stable
     ignoreList = [
         'com.android.internal.',
@@ -25,15 +26,30 @@ def map(slug, dims, value, context):
         'android.',
         'java.lang.',
     ]
+
     def getStack(stack):
         return list(OrderedDict.fromkeys(
             [processFrame(frame) for frame in stack
              if not any(frame.startswith(prefix) for prefix in ignoreList)]))
+    key_thread = mainThread.name
     key_stack = getStack(stack)
     while ignoreList and len(key_stack) < 10:
         ignoreList.pop()
         key_stack = getStack(stack)
-    context.write(tuple(key_stack), (
+
+    def getNativeStack():
+        nativeThread = 'GeckoMain (native)'
+        nativeMain = anr.getThread('GeckoMain (native)')
+        if nativeMain is None:
+            return (key_thread, key_stack)
+        nativeStack = [str(f) for f in nativeMain.stack if f.isPseudo]
+        if not nativeStack:
+            return (key_thread, key_stack)
+        return (nativeThread, nativeStack)
+    if any('sendEventToGeckoSync' in f for f in key_stack):
+        key_thread, key_stack = getNativeStack()
+
+    context.write((key_thread, tuple(key_stack)), (
         dims + [slug],
         mapreduce_common.filterDimensions(
             dims, mapreduce_common.filterInfo(anr.rawData['info'])),
@@ -57,14 +73,15 @@ def reduce(key, values, context):
                 counts[infovalue] = counts.get(infovalue, 0) + 1
         slugs.append(slug)
     sample = max(anrs, key=lambda anr:anr.detail)
-    context.write(hash(key), json.dumps({
+    context.write(slugs[0], json.dumps({
         'info': info,
         'threads': [{
-                'name': 'main',
+                'name': sample.mainThread.name,
                 'stack': [str(f) for f in sample.mainThread.stack]
             }] + [{
                 'name': t.name,
                 'stack': [str(f) for f in t.stack]
             } for t in sample.getBackgroundThreads()],
-        'slugs': slugs
+        'slugs': slugs,
+        'display': key[0]
     }))
