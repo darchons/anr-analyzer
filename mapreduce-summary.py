@@ -1,4 +1,4 @@
-import json
+import simplejson as json
 import mapreduce_common
 
 def map(slug, dims, value, context):

@@ -1,4 +1,5 @@
-import json, re
+import re
+import simplejson as json
 from collections import OrderedDict
 from anr import ANRReport
 import mapreduce_common
