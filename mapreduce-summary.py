@@ -17,7 +17,9 @@ def map(slug, dims, value, context):
         return
     info = mapreduce_common.filterInfo(ping['info'])
     mapreduce_common.addUptime(info, ping)
-    for name, dim in mapreduce_common.filterDimensions(dims, info).iteritems():
+    aggregate = dict(info.items() +
+        mapreduce_common.filterDimensions(dims, info).items())
+    for name, dim in aggregate.iteritems():
         context.write((name, dim), uptime)
 
 def reduce(key, values, context):
