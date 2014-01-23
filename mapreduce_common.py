@@ -59,7 +59,12 @@ MEMSIZES = [(int((1 << n) * (mult + 0.25)), int((1 << n) * mult))
     for n in range(7, 30) for mult in (1, 1.5)]
 
 def roundMemSize(n):
-    return next(size for bound, size in MEMSIZES if bound >= n)
+    out = next(size for bound, size in MEMSIZES if bound >= n)
+    if out < 1024:
+        return str(out) + 'M'
+    if out > 1024 and out < 2048:
+        return str(round(float(out) / 1024.0, 1)) + 'G'
+    return str(out / 1024) + 'G'
 
 def adjustInfo(info):
     if ('memsize' in info and
