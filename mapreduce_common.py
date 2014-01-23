@@ -3,7 +3,6 @@ import math
 allowed_infos = [
     'appName',
     'appVersion',
-    'appUpdateChannel',
     'appBuildID',
     'locale',
     'device',
@@ -13,7 +12,6 @@ allowed_infos = [
     'arch',
     'platform',
     'adapterVendorID',
-    'adapterRAM',
     'uptime',
 ]
 
@@ -30,7 +28,7 @@ allowed_dimensions = [
     'submission_date',
     'appName',
     'appVersion',
-    'os',
+    'platform',
     'cpucount',
     'memsize',
 ]
@@ -57,11 +55,17 @@ def addUptime(info, ping):
         return
     info['uptime'] = uptime
 
+MEMSIZES = [(int((1 << n) * (mult + 0.25)), int((1 << n) * mult))
+    for n in range(7, 30) for mult in (1, 1.5)]
+
+def roundMemSize(n):
+    return next(size for bound, size in MEMSIZES if bound >= n)
+
 def adjustInfo(info):
     if ('memsize' in info and
         str(info['memsize']).isdigit() and
         int(info['memsize']) > 0):
-        info['memsize'] = (int(info['memsize']) + 64) & (~127)
+        info['memsize'] = roundMemSize(int(info['memsize']))
     else:
         info['memsize'] = None
 
@@ -88,7 +92,7 @@ def adjustInfo(info):
     if ('adapterRAM' in info and
         str(info['adapterRAM']).isdigit() and
         int(info['adapterRAM']) > 0):
-        info['adapterRAM'] = (int(info['adapterRAM']) + 64) & (~127)
+        info['adapterRAM'] = roundMemSize(int(info['adapterRAM']))
     else:
         info['adapterRAM'] = None
 
@@ -98,6 +102,9 @@ def adjustInfo(info):
             info['arch'] = ('armv7'
                 if ('v7' in arch or info.get('hasARMv7', 'v6' not in arch))
                 else 'armv6')
+
+    if 'appBuildID' in info and 'appVersion' in info:
+        info['appBuildID'] = info['appVersion'] + '-' + info['appBuildID']
 
 def filterInfo(raw_info):
     adjustInfo(raw_info)
