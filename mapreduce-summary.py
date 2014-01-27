@@ -26,7 +26,7 @@ def reduce(key, values, context):
     if not values:
         return
     lower, upper = mapreduce_common.estQuantile(values, 4)
-    median = mapreduce_common.estQuantile(values, 2)[0]
+    median = int(round(mapreduce_common.estQuantile(values, 2)[0]))
     lower = int(round(lower))
     upper = int(round(upper))
     context.write(json.dumps(key), json.dumps((
