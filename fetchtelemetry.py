@@ -99,6 +99,15 @@ def processBHR(index, jobfile, outdir):
                 for val, counts in info_vals.iteritems():
                     info_vals[val] = sum(counts.itervalues())
         return dim_vals
+    def mergeHangTime(dest, slug, dim_vals):
+        for dim_val, info_keys in dim_vals.iteritems():
+            dest_histogram = {}
+            for info_vals in info_keys.itervalues():
+                for time_histogram in info_vals.itervalues():
+                    for time, counts in time_histogram.iteritems():
+                        dest_histogram[time] = (counts +
+                            dest_histogram.get(time, 0))
+            dest.setdefault(dim_val, {})[slug] = dest_histogram
     for line in jobfile:
         parts = line.partition('\t')
         stacks = json.loads(parts[0])
@@ -123,7 +132,9 @@ def processBHR(index, jobfile, outdir):
         slug = str(uuid.uuid4())
         mainthreads[slug] = [{'name': 'main', 'stack': stack}]
         for k, v in stats.iteritems():
-            dimsinfo.setdefault(k, {})[slug] = v
+            dimsinfo.setdefault(k, {})[slug] = adjustCounts(v)
+            mergeHangTime(sessions.setdefault(k, {})
+                                  .setdefault('hangtime', {}), slug, v)
 
     saveFile(outdir, 'main_thread', index, mainthreads)
     for field, dim in dimsinfo.iteritems():
